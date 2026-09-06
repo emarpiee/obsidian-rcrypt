@@ -1,4 +1,4 @@
-# Obsidian Rclone Crypt (`obsidian-rcrypt`)
+# Obsidian RCrypt
 
 Client-side file and folder encryption for [Obsidian](https://obsidian.md), fully compatible with official [Rclone Crypt](https://rclone.org/crypt/).
 
