@@ -2,10 +2,10 @@ import { Plugin } from 'obsidian';
 
 export default class RCryptPlugin extends Plugin {
 	async onload(): Promise<void> {
-		console.log('Loading RCrypt plugin');
+		// Plugin loaded
 	}
 
 	onunload(): void {
-		console.log('Unloading RCrypt plugin');
+		// Plugin unloaded
 	}
 }
