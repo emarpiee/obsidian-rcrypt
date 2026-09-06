@@ -111,7 +111,7 @@ export class PassphraseModal extends Modal {
 						} else {
 							errorDiv.setText(t.modalErrDecryptFailed);
 							errorDiv.setCssProps({ display: 'block' });
-							new Notice(t.modalErrDecryptFailed);
+							new Notice(t.modalErrDecryptFailed, 8000);
 						}
 					} catch (err: unknown) {
 						const msg = err instanceof Error ? err.message : 'Invalid passphrase or file error.';

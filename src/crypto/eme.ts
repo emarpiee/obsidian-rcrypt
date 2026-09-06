@@ -63,10 +63,10 @@ export class EMECipher {
 		const eZero = new Uint8Array(16);
 		const Li = this.aesEncrypt(eZero);
 
-		const LTable: Uint8Array[] = new Array(m);
+		const LTable: Uint8Array[] = [];
 		for (let i = 0; i < m; i++) {
 			multByTwo(Li, Li);
-			LTable[i] = new Uint8Array(Li);
+			LTable.push(new Uint8Array(Li));
 		}
 		return LTable;
 	}
@@ -83,7 +83,6 @@ export class EMECipher {
 		const C = new Uint8Array(inputData.length);
 		const LTable = this.tabulateL(m);
 
-		const PPj = new Uint8Array(16);
 		for (let j = 0; j < m; j++) {
 			const Pj = inputData.subarray(j * 16, (j + 1) * 16);
 			const xored = xorBuffers(Pj, LTable[j]);

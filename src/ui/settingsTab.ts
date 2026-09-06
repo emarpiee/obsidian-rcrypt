@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
-import { FilenameEncoding, FilenameEncryptionMode } from '../types';
+import { CryptProfile, DEFAULT_PROFILE } from '../types';
 
 export class RCryptSettingTab extends PluginSettingTab {
 	plugin: RCryptPlugin;
@@ -22,39 +22,109 @@ export class RCryptSettingTab extends PluginSettingTab {
 			.setDesc(t.settingsHeadingDesc)
 			.setHeading();
 
+		// --- PROFILE MANAGER SECTION ---
+		new Setting(containerEl)
+			.setName(t.profileManagerName)
+			.setDesc(t.profileManagerDesc)
+			.addDropdown((dropdown) => {
+				for (const profile of this.plugin.settings.profiles) {
+					dropdown.addOption(profile.id, profile.name);
+				}
+				dropdown
+					.setValue(this.plugin.settings.activeProfileId)
+					.onChange(async (value) => {
+						this.plugin.settings.activeProfileId = value;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			})
+			.addButton((btn) => {
+				btn
+					.setButtonText(t.newProfileBtn)
+					.setCta()
+					.onClick(async () => {
+						const newId = `profile_${Date.now()}`;
+						const newProfile: CryptProfile = {
+							...DEFAULT_PROFILE,
+							id: newId,
+							name: `Profile ${this.plugin.settings.profiles.length + 1}`,
+						};
+						this.plugin.settings.profiles.push(newProfile);
+						this.plugin.settings.activeProfileId = newId;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
+
+		// Retrieve active profile
+		const activeProfile =
+			this.plugin.settings.profiles.find((p) => p.id === this.plugin.settings.activeProfileId) ||
+			this.plugin.settings.profiles[0];
+
+		if (!activeProfile) return;
+
+		// Profile Name & Actions (Rename / Delete)
+		const profileHeaderSetting = new Setting(containerEl)
+			.setName(t.profileConfigHeader)
+			.setHeading();
+
+		profileHeaderSetting.addText((text) => {
+			text
+				.setPlaceholder('Profile name')
+				.setValue(activeProfile.name)
+				.onChange(async (val) => {
+					activeProfile.name = val || 'Unnamed Profile';
+					await this.plugin.saveSettings();
+				});
+		});
+
+		if (this.plugin.settings.profiles.length > 1) {
+			profileHeaderSetting.addButton((btn) => {
+				btn
+					.setButtonText(t.deleteProfileBtn)
+					.setWarning()
+					.onClick(async () => {
+						this.plugin.settings.profiles = this.plugin.settings.profiles.filter(
+							(p) => p.id !== activeProfile.id
+						);
+						this.plugin.settings.activeProfileId = this.plugin.settings.profiles[0].id;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
+		}
+
+		// Passphrase
 		new Setting(containerEl)
 			.setName(t.defaultPassphraseName)
 			.setDesc(t.defaultPassphraseDesc)
 			.addText((text) => {
 				text
 					.setPlaceholder(t.defaultPassphrasePlaceholder)
-					.setValue(this.plugin.settings.passphrase)
+					.setValue(activeProfile.passphrase)
 					.onChange(async (value) => {
-						this.plugin.settings.passphrase = value;
+						activeProfile.passphrase = value;
 						await this.plugin.saveSettings();
 					});
 				text.inputEl.type = 'password';
 			});
 
+		// Salt
 		new Setting(containerEl)
 			.setName(t.defaultSaltName)
-			.setDesc(
-				t.defaultSaltDesc +
-					(!this.plugin.settings.salt || this.plugin.settings.salt === 'rclone'
-						? t.defaultSaltWarning
-						: '')
-			)
+			.setDesc(t.defaultSaltDesc)
 			.addText((text) => {
 				text
 					.setPlaceholder(t.defaultSaltPlaceholder)
-					.setValue(this.plugin.settings.salt)
+					.setValue(activeProfile.salt)
 					.onChange(async (value) => {
-						this.plugin.settings.salt = value;
+						activeProfile.salt = value;
 						await this.plugin.saveSettings();
 					});
 				text.inputEl.type = 'password';
 			});
 
+		// Filename Encryption Mode
 		new Setting(containerEl)
 			.setName(t.filenameEncryptionModeName)
 			.setDesc(t.filenameEncryptionModeDesc)
@@ -63,14 +133,15 @@ export class RCryptSettingTab extends PluginSettingTab {
 					.addOption('standard', t.modeStandard)
 					.addOption('obfuscate', t.modeObfuscate)
 					.addOption('off', t.modeOff)
-					.setValue(this.plugin.settings.filenameEncryptionMode)
-					.onChange(async (value) => {
-						this.plugin.settings.filenameEncryptionMode = value as FilenameEncryptionMode;
-						await this.plugin.saveSettings();
+					.setValue(activeProfile.filenameEncryptionMode)
+					.onChange(async (value: string) => {
+						activeProfile.filenameEncryptionMode = value as 'standard' | 'obfuscate' | 'off';
 						updateSuffixVisibility();
+						await this.plugin.saveSettings();
 					});
 			});
 
+		// Filename Encoding
 		new Setting(containerEl)
 			.setName(t.filenameEncodingName)
 			.setDesc(t.filenameEncodingDesc)
@@ -78,28 +149,29 @@ export class RCryptSettingTab extends PluginSettingTab {
 				dropdown
 					.addOption('base32', t.encodingBase32)
 					.addOption('base64', t.encodingBase64)
-					.setValue(this.plugin.settings.filenameEncoding)
-					.onChange(async (value) => {
-						this.plugin.settings.filenameEncoding = value as FilenameEncoding;
+					.setValue(activeProfile.filenameEncoding)
+					.onChange(async (value: string) => {
+						activeProfile.filenameEncoding = value as 'base32' | 'base64';
 						await this.plugin.saveSettings();
 					});
 			});
 
+		// Encrypted Extension (Suffix)
 		const suffixSetting = new Setting(containerEl)
 			.setName(t.encryptedSuffixName)
 			.setDesc(t.encryptedSuffixDesc)
 			.addText((text) => {
 				text
-					.setPlaceholder('.bin')
-					.setValue(this.plugin.settings.encryptedExtension)
+					.setPlaceholder('.rcrypt')
+					.setValue(activeProfile.encryptedExtension)
 					.onChange(async (value) => {
-						this.plugin.settings.encryptedExtension = value || '.rcrypt';
+						activeProfile.encryptedExtension = value || '.rcrypt';
 						await this.plugin.saveSettings();
 					});
 			});
 
-		const updateSuffixVisibility = () => {
-			if (this.plugin.settings.filenameEncryptionMode === 'off') {
+		const updateSuffixVisibility = (): void => {
+			if (activeProfile.filenameEncryptionMode === 'off') {
 				suffixSetting.settingEl.show();
 			} else {
 				suffixSetting.settingEl.hide();
@@ -108,15 +180,19 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		updateSuffixVisibility();
 
+		// Encrypt Folder Names
 		new Setting(containerEl)
 			.setName(t.encryptFolderNamesName)
 			.setDesc(t.encryptFolderNamesDesc)
 			.addToggle((toggle) => {
-				toggle.setValue(this.plugin.settings.encryptFolderNames).onChange(async (value) => {
-					this.plugin.settings.encryptFolderNames = value;
+				toggle.setValue(activeProfile.encryptFolderNames).onChange(async (value) => {
+					activeProfile.encryptFolderNames = value;
 					await this.plugin.saveSettings();
 				});
 			});
+
+		// --- OTHER OPTIONS SECTION ---
+		new Setting(containerEl).setName(t.generalOptionsHeader);
 
 		new Setting(containerEl)
 			.setName(t.autoDeleteSourceName)

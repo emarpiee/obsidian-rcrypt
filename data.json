@@ -1,10 +1,38 @@
 {
-  "passphrase": "ylVcWZzQo1NNA5nO8x4cIMHryL34JUyN49vza5O2",
-  "salt": "4TqZlakhApYjRhtsLQwCegcnOmUs",
-  "filenameEncryptionMode": "standard",
-  "filenameEncoding": "base32",
-  "encryptedExtension": ".rcrypt",
+  "activeProfileId": "profile_1788725277241",
+  "profiles": [
+    {
+      "id": "profile_1788725277241",
+      "name": "Off",
+      "passphrase": "RQR1bxYhOqH2DsVquebp_UwmKAIZ-qIajA",
+      "salt": "ey8t289MtnUYx2-chr4Qr038lw",
+      "filenameEncryptionMode": "off",
+      "filenameEncoding": "base32",
+      "encryptedExtension": ".rcrypt",
+      "encryptFolderNames": true
+    },
+    {
+      "id": "profile_1788725337574",
+      "name": "Obfuscate",
+      "passphrase": "lAk35wjuAFrWnFzrPOBXo35nuLNSd6WMyz4q",
+      "salt": "9F50WTwygxoPY_m0mCSFCwNqZqU",
+      "filenameEncryptionMode": "obfuscate",
+      "filenameEncoding": "base32",
+      "encryptedExtension": ".rcrypt",
+      "encryptFolderNames": true
+    },
+    {
+      "id": "profile_1788725449880",
+      "name": "Standard",
+      "passphrase": "oiJRRn7xmP8uwJlICMK_7J3QIgu1VG83w06M",
+      "salt": "FnDJeLBVwDb3OYu1C_ccHPY87vzH",
+      "filenameEncryptionMode": "standard",
+      "filenameEncoding": "base64",
+      "encryptedExtension": ".rcrypt",
+      "encryptFolderNames": true
+    }
+  ],
+  "folderMappings": [],
   "autoDeleteSource": true,
-  "rememberSessionPassphrase": true,
-  "encryptFolderNames": true
+  "rememberSessionPassphrase": true
 }

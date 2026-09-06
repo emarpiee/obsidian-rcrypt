@@ -2,7 +2,7 @@ import { Plugin } from 'obsidian';
 import { registerContextMenu } from './contextMenu/registerMenu';
 import { obscurePassword, revealPassword } from './crypto/obscure';
 import { RCryptEngine } from './crypto/rcryptEngine';
-import { DEFAULT_SETTINGS, RCryptSettings } from './types';
+import { DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
 import { RCryptSettingTab } from './ui/settingsTab';
 
 export default class RCryptPlugin extends Plugin {
@@ -24,24 +24,67 @@ export default class RCryptPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const loadedData = (await this.loadData()) as Partial<RCryptSettings> | null;
+		const loadedData = (await this.loadData()) as Partial<RCryptSettings> | Record<string, unknown> | null;
+		
+		// Legacy migration: if passphrase exists at root level of old settings, migrate into Default profile
+		if (loadedData && 'passphrase' in loadedData && typeof loadedData.passphrase === 'string') {
+			const oldPass = loadedData.passphrase;
+			const oldSalt = typeof loadedData.salt === 'string' ? loadedData.salt : '';
+			const oldMode = (loadedData.filenameEncryptionMode as 'standard' | 'obfuscate' | 'off') || 'standard';
+			const oldEncoding = (loadedData.filenameEncoding as 'base32' | 'base64') || 'base32';
+			const oldSuffix = (loadedData.encryptedExtension as string) || '.rcrypt';
+			const oldFolderEnc = typeof loadedData.encryptFolderNames === 'boolean' ? loadedData.encryptFolderNames : false;
+
+			const migratedDefaultProfile = {
+				...DEFAULT_PROFILE,
+				passphrase: revealPassword(oldPass),
+				salt: revealPassword(oldSalt),
+				filenameEncryptionMode: oldMode,
+				filenameEncoding: oldEncoding,
+				encryptedExtension: oldSuffix,
+				encryptFolderNames: oldFolderEnc,
+			};
+
+			this.settings = {
+				activeProfileId: 'default',
+				profiles: [migratedDefaultProfile],
+				folderMappings: [],
+				autoDeleteSource: typeof loadedData.autoDeleteSource === 'boolean' ? loadedData.autoDeleteSource : true,
+				rememberSessionPassphrase: true,
+			};
+			await this.saveSettings();
+			return;
+		}
+
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
-		// Automatically reveal obscured passphrase and salt from data.json into RAM
-		if (this.settings.passphrase) {
-			this.settings.passphrase = revealPassword(this.settings.passphrase);
+		if (!this.settings.profiles || this.settings.profiles.length === 0) {
+			this.settings.profiles = [{ ...DEFAULT_PROFILE }];
+			this.settings.activeProfileId = DEFAULT_PROFILE.id;
 		}
-		if (this.settings.salt) {
-			this.settings.salt = revealPassword(this.settings.salt);
+
+		// Reveal obscured credentials for all profiles in RAM
+		for (const p of this.settings.profiles) {
+			if (p.passphrase) {
+				p.passphrase = revealPassword(p.passphrase);
+			}
+			if (p.salt) {
+				p.salt = revealPassword(p.salt);
+			}
 		}
 	}
 
 	async saveSettings(): Promise<void> {
-		// Store obscured credentials in data.json on disk so raw plain-text is never saved
+		// Clone and obscure credentials for each profile before writing to data.json
+		const obscuredProfiles = this.settings.profiles.map((p) => ({
+			...p,
+			passphrase: obscurePassword(p.passphrase),
+			salt: obscurePassword(p.salt),
+		}));
+
 		const dataToSave: RCryptSettings = {
 			...this.settings,
-			passphrase: obscurePassword(this.settings.passphrase),
-			salt: obscurePassword(this.settings.salt),
+			profiles: obscuredProfiles,
 		};
 
 		await this.saveData(dataToSave);

@@ -1,6 +1,14 @@
 import { getLanguage, moment } from 'obsidian';
 
 export interface TranslationSchema {
+	// Profile Manager Settings
+	profileManagerName?: string;
+	profileManagerDesc?: string;
+	newProfileBtn?: string;
+	profileConfigHeader?: string;
+	deleteProfileBtn?: string;
+	generalOptionsHeader?: string;
+
 	// Settings Tab
 	settingsHeading: string;
 	settingsHeadingDesc: string;
@@ -55,10 +63,20 @@ export interface TranslationSchema {
 	noticeEncryptFailed: (count: number, err: string) => string;
 	noticeDecryptFailed: (count: number, err: string) => string;
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => string;
+	noticeAlreadyEncrypted?: string;
+	noticeAlreadyDecrypted?: string;
+	noticeNoFilesFound?: string;
 }
 
 const en: TranslationSchema = {
-	settingsHeading: 'Vault encryption',
+	profileManagerName: 'Active profile',
+	profileManagerDesc: 'Select the crypt profile to use as default for 1-click encryption/decryption.',
+	newProfileBtn: '+ new profile',
+	profileConfigHeader: 'Profile configuration',
+	deleteProfileBtn: 'Delete profile',
+	generalOptionsHeader: 'Additional options',
+
+	settingsHeading: 'Vault encryption configuration',
 	settingsHeadingDesc: '1:1 client-side encryption compatible with RCLONE Crypt. Files and folders encrypted here can be directly decrypted by RCLONE CLI and vice versa using matching passphrase, salt, and filename encryption settings.',
 	defaultPassphraseName: 'Default passphrase',
 	defaultPassphraseDesc: 'Master passphrase used for 1-click encryption/decryption.',
@@ -106,8 +124,18 @@ const en: TranslationSchema = {
 	noticeEncryptSuccess: (count: number) => `✅ Encryption completed: ${count} item${count > 1 ? 's' : ''} processed.`,
 	noticeDecryptSuccess: (count: number) => `✅ Decryption completed: ${count} item${count > 1 ? 's' : ''} processed.`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ Encryption failed (${count} item${count > 1 ? 's' : ''}): ${err}`,
-	noticeDecryptFailed: (count: number, err: string) => `❌ Decryption failed (${count} item${count > 1 ? 's' : ''}): ${err}`,
-	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} finished with errors: ${success} succeeded, ${fail} failed. (${err})`,
+	noticeDecryptFailed: (count: number, err: string) =>
+		`❌ Decryption failed (${count} item${count > 1 ? 's' : ''}):\n` +
+		`⚠️ ${err}\n` +
+		`💡 Check if the selected profile's passphrase, salt, or filename encryption mode matches.`,
+	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) =>
+		`⚠️ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} completed with warnings:\n` +
+		`✅ ${success} succeeded\n` +
+		`❌ ${fail} failed (${err})\n` +
+		`💡 Note: Files that failed may have already been decrypted or use different credentials.`,
+	noticeAlreadyEncrypted: 'ℹ️ Selected file(s) are already encrypted.',
+	noticeAlreadyDecrypted: 'ℹ️ Selected file(s) are already unencrypted.',
+	noticeNoFilesFound: 'ℹ️ No files found to process in the selected target.',
 };
 
 const zh: TranslationSchema = {
@@ -658,5 +686,6 @@ const localeMap: Record<string, TranslationSchema> = {
 export function getText(): TranslationSchema {
 	const lang = getLanguage() || moment.locale() || 'en';
 	const normalizedLang = lang.toLowerCase();
-	return localeMap[normalizedLang] || localeMap[normalizedLang.split('-')[0]] || en;
+	const targetLocale = localeMap[normalizedLang] || localeMap[normalizedLang.split('-')[0]] || en;
+	return { ...en, ...targetLocale };
 }
