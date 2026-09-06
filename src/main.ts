@@ -1,7 +1,8 @@
-import { Plugin } from 'obsidian';
+import { Notice, Plugin } from 'obsidian';
 import { registerContextMenu } from './contextMenu/registerMenu';
 import { obscurePassword, revealPassword } from './crypto/obscure';
 import { RCryptEngine } from './crypto/rcryptEngine';
+import { getText } from './i18n/i18n';
 import { DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
 import { RCryptSettingTab } from './ui/settingsTab';
 
@@ -16,11 +17,35 @@ export default class RCryptPlugin extends Plugin {
 
 		this.addSettingTab(new RCryptSettingTab(this.app, this));
 
+		// Register "Clear Session Passphrases" command to purge RAM session passphrases on demand
+		this.addCommand({
+			id: 'clear-session-passphrases',
+			name: getText().lockVaultName || 'Clear session password & salt from memory',
+			callback: () => {
+				for (const p of this.settings.profiles) {
+					if (!p.savePassphraseOnDisk) {
+						p.passphrase = '';
+						p.salt = '';
+					}
+				}
+				if (this.engine) {
+					this.engine.updateSettings(this.settings);
+				}
+				new Notice(getText().lockVaultNotice || '🧹 Session password & salt cleared from memory.', 5000);
+			},
+		});
+
 		registerContextMenu(this);
 	}
 
 	onunload(): void {
-		// Clean up on unload
+		// Clean up RAM session credentials on unload
+		for (const p of this.settings.profiles) {
+			if (!p.savePassphraseOnDisk) {
+				p.passphrase = '';
+				p.salt = '';
+			}
+		}
 	}
 
 	async loadSettings(): Promise<void> {
@@ -43,6 +68,7 @@ export default class RCryptPlugin extends Plugin {
 				filenameEncoding: oldEncoding,
 				encryptedExtension: oldSuffix,
 				encryptFolderNames: oldFolderEnc,
+				savePassphraseOnDisk: false,
 			};
 
 			this.settings = {
@@ -63,13 +89,19 @@ export default class RCryptPlugin extends Plugin {
 			this.settings.activeProfileId = DEFAULT_PROFILE.id;
 		}
 
-		// Reveal obscured credentials for all profiles in RAM
+		// Reveal obscured credentials for profiles saved on disk
 		for (const p of this.settings.profiles) {
-			if (p.passphrase) {
-				p.passphrase = revealPassword(p.passphrase);
-			}
-			if (p.salt) {
-				p.salt = revealPassword(p.salt);
+			if (p.savePassphraseOnDisk) {
+				if (p.passphrase) {
+					p.passphrase = revealPassword(p.passphrase);
+				}
+				if (p.salt) {
+					p.salt = revealPassword(p.salt);
+				}
+			} else {
+				// RAM only: initial session passphrase and salt start empty unless entered in session
+				p.passphrase = '';
+				p.salt = '';
 			}
 		}
 	}
@@ -78,8 +110,9 @@ export default class RCryptPlugin extends Plugin {
 		// Clone and obscure credentials for each profile before writing to data.json
 		const obscuredProfiles = this.settings.profiles.map((p) => ({
 			...p,
-			passphrase: obscurePassword(p.passphrase),
-			salt: obscurePassword(p.salt),
+			// If savePassphraseOnDisk is false, store empty passphrase and salt strings on disk
+			passphrase: p.savePassphraseOnDisk ? obscurePassword(p.passphrase) : '',
+			salt: p.savePassphraseOnDisk ? obscurePassword(p.salt) : '',
 		}));
 
 		const dataToSave: RCryptSettings = {

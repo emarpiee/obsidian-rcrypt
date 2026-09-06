@@ -199,6 +199,8 @@ async function processItems(
 			title,
 			targetProfile.salt,
 			async (res) => {
+				// Store passphrase in RAM for current session
+				targetProfile.passphrase = res.passphrase;
 				const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, targetProfile);
 				return result.successCount > 0 && result.failCount === 0;
 			}

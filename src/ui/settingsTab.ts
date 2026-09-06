@@ -94,7 +94,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 		}
 
-		// Passphrase
+		// Password (for encryption)
 		new Setting(containerEl)
 			.setName(t.defaultPassphraseName)
 			.setDesc(t.defaultPassphraseDesc)
@@ -109,7 +109,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 				text.inputEl.type = 'password';
 			});
 
-		// Salt
+		// Salt (password2)
 		new Setting(containerEl)
 			.setName(t.defaultSaltName)
 			.setDesc(t.defaultSaltDesc)
@@ -122,6 +122,17 @@ export class RCryptSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 				text.inputEl.type = 'password';
+			});
+
+		// Save Password On Disk Toggle
+		new Setting(containerEl)
+			.setName(t.savePassphraseOnDiskName || 'Save password on disk')
+			.setDesc(t.savePassphraseOnDiskDesc || 'If disabled (recommended), passphrases are kept only in RAM for the current session and never stored on disk.')
+			.addToggle((toggle) => {
+				toggle.setValue(activeProfile.savePassphraseOnDisk ?? false).onChange(async (value) => {
+					activeProfile.savePassphraseOnDisk = value;
+					await this.plugin.saveSettings();
+				});
 			});
 
 		// Filename Encryption Mode

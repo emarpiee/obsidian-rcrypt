@@ -9,6 +9,11 @@ export interface TranslationSchema {
 	deleteProfileBtn?: string;
 	generalOptionsHeader?: string;
 
+	savePassphraseOnDiskName?: string;
+	savePassphraseOnDiskDesc?: string;
+	lockVaultName?: string;
+	lockVaultNotice?: string;
+
 	// Settings Tab
 	settingsHeading: string;
 	settingsHeadingDesc: string;
@@ -76,13 +81,18 @@ const en: TranslationSchema = {
 	deleteProfileBtn: 'Delete profile',
 	generalOptionsHeader: 'Additional options',
 
+	savePassphraseOnDiskName: 'Save password on disk',
+	savePassphraseOnDiskDesc: 'If disabled (recommended), password and salt are kept only in RAM for the current session and never stored on disk.',
+	lockVaultName: 'Clear session password & salt from memory',
+	lockVaultNotice: '🧹 Session password & salt cleared from memory.',
+
 	settingsHeading: 'Vault encryption configuration',
 	settingsHeadingDesc: '1:1 client-side encryption compatible with RCLONE Crypt. Files and folders encrypted here can be directly decrypted by RCLONE CLI and vice versa using matching passphrase, salt, and filename encryption settings.',
-	defaultPassphraseName: 'Default passphrase',
-	defaultPassphraseDesc: 'Master passphrase used for 1-click encryption/decryption.',
-	defaultPassphrasePlaceholder: 'Enter master passphrase...',
-	defaultSaltName: 'Default salt (password2)',
-	defaultSaltDesc: 'Salt used alongside passphrase (corresponds to password2 in rclone.conf). Setting a custom salt is strongly recommended.',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
+	defaultPassphraseDesc: 'Primary encryption password (corresponds to password in rclone config).',
+	defaultPassphrasePlaceholder: 'Enter encryption password...',
+	defaultSaltName: 'Password or pass phrase (for salt)',
+	defaultSaltDesc: 'Password salt (corresponds to password2 in rclone config). Optional but recommended.',
 	defaultSaltWarning: ' ⚠️ Using default salt ("rclone") is weaker against rainbow table attacks.',
 	defaultSaltPlaceholder: 'rclone',
 	filenameEncryptionModeName: 'Filename encryption mode',
@@ -135,16 +145,20 @@ const en: TranslationSchema = {
 		`💡 Note: Files that failed may have already been decrypted or use different credentials.`,
 	noticeAlreadyEncrypted: 'ℹ️ Selected file(s) are already encrypted.',
 	noticeAlreadyDecrypted: 'ℹ️ Selected file(s) are already unencrypted.',
-	noticeNoFilesFound: 'ℹ️ No files found to process in the selected target.',
 };
 
 const zh: TranslationSchema = {
+	savePassphraseOnDiskName: '在磁盘上保存密码',
+	savePassphraseOnDiskDesc: '如果禁用（推荐），密码和盐仅在当前会话中保存在内存 (RAM) 中，切勿存储在磁盘上。',
+	lockVaultName: '从内存中清除会话密码与盐',
+	lockVaultNotice: '🧹 会话密码与盐已从内存中清除。',
+
 	settingsHeading: '保管库加密',
 	settingsHeadingDesc: '与 RCLONE Crypt 1:1 兼容的客户端加密。使用匹配的密码、盐和文件名加密设置，在此加密的文件和文件夹可以直接由 RCLONE CLI 解密，反之亦然。',
-	defaultPassphraseName: '默认密码',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: '用于一键加密/解密的主密码。',
 	defaultPassphrasePlaceholder: '输入主密码...',
-	defaultSaltName: '默认盐 (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: '与密码一起使用的盐（对应于 rclone.conf 中的 password2）。强烈建议设置自定义盐。',
 	defaultSaltWarning: ' ⚠️ 使用默认盐 ("rclone") 在面对彩虹表攻击时较弱。',
 	defaultSaltPlaceholder: 'rclone',
@@ -192,12 +206,17 @@ const zh: TranslationSchema = {
 };
 
 const zhTW: TranslationSchema = {
+	savePassphraseOnDiskName: '在磁碟上儲存密碼',
+	savePassphraseOnDiskDesc: '若停用（推薦），密碼與鹽僅在目前工作階段中保留於記憶體 (RAM) 中，絕不儲存於磁碟。',
+	lockVaultName: '從記憶體中清除工作階段密碼與鹽',
+	lockVaultNotice: '🧹 工作階段密碼與鹽已從記憶體中清除。',
+
 	settingsHeading: '寶庫加密',
 	settingsHeadingDesc: '與 RCLONE Crypt 1:1 相容的用戶端加密。使用符合的密碼、鹽和檔名加密設定，在此加密的檔案和資料夾可以直接由 RCLONE CLI 解密，反之亦然。',
-	defaultPassphraseName: '預設密碼',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: '用於一鍵加密/解密的主密碼。',
 	defaultPassphrasePlaceholder: '輸入主密碼...',
-	defaultSaltName: '預設鹽 (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: '與密碼一起使用的鹽（對應於 rclone.conf 中的 password2）。強烈建議設定自訂鹽。',
 	defaultSaltWarning: ' ⚠️ 使用預設鹽 ("rclone") 在面對彩虹表攻擊時較弱。',
 	defaultSaltPlaceholder: 'rclone',
@@ -245,12 +264,17 @@ const zhTW: TranslationSchema = {
 };
 
 const es: TranslationSchema = {
+	savePassphraseOnDiskName: 'Guardar contraseña en disco',
+	savePassphraseOnDiskDesc: 'Si se deshabilita (recomendado), la contraseña y la sal se guardan solo en RAM durante la sesión actual y nunca en el disco.',
+	lockVaultName: 'Limpiar contraseña y sal de sesión de la memoria',
+	lockVaultNotice: '🧹 Contraseña y sal de sesión limpiadas de la memoria.',
+
 	settingsHeading: 'Cifrado de la bóveda',
 	settingsHeadingDesc: 'Cifrado del lado del cliente 1:1 compatible con RCLONE Crypt. Los archivos y carpetas cifrados aquí se pueden descifrar directamente con RCLONE CLI y viceversa.',
-	defaultPassphraseName: 'Frase de contraseña predeterminada',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'Frase de contraseña maestra utilizada para cifrar/descifrar con 1 clic.',
 	defaultPassphrasePlaceholder: 'Ingrese la frase de contraseña...',
-	defaultSaltName: 'Sal predeterminada (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'Sal utilizada junto con la contraseña (corresponde a password2 en rclone.conf).',
 	defaultSaltWarning: ' ⚠️ Usar la sal predeterminada ("rclone") es menos seguro.',
 	defaultSaltPlaceholder: 'rclone',
@@ -298,12 +322,17 @@ const es: TranslationSchema = {
 };
 
 const fr: TranslationSchema = {
+	savePassphraseOnDiskName: 'Enregistrer le mot de passe sur le disque',
+	savePassphraseOnDiskDesc: 'Si désactivé (recommandé), le mot de passe et le sel sont conservés uniquement en RAM pour la session en cours et jamais stockés sur le disque.',
+	lockVaultName: 'Effacer le mot de passe et le sel de la mémoire',
+	lockVaultNotice: '🧹 Mot de passe et sel de session effacés de la mémoire.',
+
 	settingsHeading: 'Chiffrement du coffre',
 	settingsHeadingDesc: 'Chiffrement côté client 1:1 compatible avec RCLONE Crypt. Les fichiers et dossiers chiffrés ici peuvent être directement déchiffrés par RCLONE CLI et vice-versa.',
-	defaultPassphraseName: 'Mot de passe par défaut',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'Mot de passe principal utilisé pour le chiffrement/déchiffrement en 1 clic.',
 	defaultPassphrasePlaceholder: 'Saisir le mot de passe principal...',
-	defaultSaltName: 'Sel par défaut (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'Sel utilisé avec le mot de passe (correspond à password2 dans rclone.conf).',
 	defaultSaltWarning: ' ⚠️ L’utilisation du sel par défaut ("rclone") est moins sécurisée.',
 	defaultSaltPlaceholder: 'rclone',
@@ -351,12 +380,17 @@ const fr: TranslationSchema = {
 };
 
 const de: TranslationSchema = {
+	savePassphraseOnDiskName: 'Passwort auf der Festplatte speichern',
+	savePassphraseOnDiskDesc: 'Wenn deaktiviert (empfohlen), werden Passwort und Salt nur für die aktuelle Sitzung im RAM gehalten und niemals auf der Festplatte gespeichert.',
+	lockVaultName: 'Sitzungspasswort & Salt aus dem Speicher löschen',
+	lockVaultNotice: '🧹 Sitzungspasswort & Salt aus dem Speicher gelöscht.',
+
 	settingsHeading: 'Tresor-Verschlüsselung',
 	settingsHeadingDesc: '1:1 clientseitige Verschlüsselung kompatibel mit RCLONE Crypt. Hier verschlüsselte Dateien und Ordner können direkt von der RCLONE CLI entschlüsselt werden und umgekehrt.',
-	defaultPassphraseName: 'Standard-Passphrase',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'Master-Passphrase für 1-Klick-Verschlüsselung/Entschlüsselung.',
 	defaultPassphrasePlaceholder: 'Master-Passphrase eingeben...',
-	defaultSaltName: 'Standard-Salt (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'Salt zusammen mit der Passphrase (entspricht password2 in rclone.conf).',
 	defaultSaltWarning: ' ⚠️ Die Verwendung des Standard-Salts ("rclone") ist schwächer.',
 	defaultSaltPlaceholder: 'rclone',
@@ -404,12 +438,17 @@ const de: TranslationSchema = {
 };
 
 const ja: TranslationSchema = {
+	savePassphraseOnDiskName: 'パスワードをディスクに保存',
+	savePassphraseOnDiskDesc: '無効にする（推奨）と、パスワードとソルトは現在のセッションの間メモリ (RAM) にのみ保持され、ディスクには一切保存されません。',
+	lockVaultName: 'セッションのパスワードとソルトをメモリから消去',
+	lockVaultNotice: '🧹 セッションのパスワードとソルトをメモリから消去しました。',
+
 	settingsHeading: '保管庫の暗号化',
 	settingsHeadingDesc: 'RCLONE Cryptと1:1互換のクライアント側暗号化。ここで暗号化されたファイルやフォルダは、RCLONE CLIで直接復号でき、その逆も可能です。',
-	defaultPassphraseName: 'デフォルトのパスフレーズ',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'ワンクリックで暗号化/復号に使用するマスターパスフレーズ。',
 	defaultPassphrasePlaceholder: 'マスターパスフレーズを入力...',
-	defaultSaltName: 'デフォルトのソルト (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'パスフレーズと共に使用されるソルト (rclone.conf の password2 に相当)。',
 	defaultSaltWarning: ' ⚠️ デフォルトのソルト ("rclone") の使用は安全性が低くなります。',
 	defaultSaltPlaceholder: 'rclone',
@@ -457,12 +496,17 @@ const ja: TranslationSchema = {
 };
 
 const ko: TranslationSchema = {
+	savePassphraseOnDiskName: '디스크에 비밀번호 저장',
+	savePassphraseOnDiskDesc: '비활성화 시(권장) 비밀번호와 솔트는 현재 세션 동안 RAM에만 유지되며 디스크에 저장되지 않습니다.',
+	lockVaultName: '메모리에서 세션 비밀번호 및 솔트 지우기',
+	lockVaultNotice: '🧹 메모리에서 세션 비밀번호 및 솔트가 지워졌습니다.',
+
 	settingsHeading: '보관함 암호화',
 	settingsHeadingDesc: 'RCLONE Crypt와 1:1 호환되는 클라이언트 측 암호화입니다. 여기서 암호화된 파일과 폴더는 RCLONE CLI에서 직접 복호화할 수 있으며 그 반대도 가능합니다.',
-	defaultPassphraseName: '기본 암호문',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: '1클릭 암호화/복호화에 사용되는 마스터 암호문입니다.',
 	defaultPassphrasePlaceholder: '마스터 암호문 입력...',
-	defaultSaltName: '기본 솔트 (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: '암호문과 함께 사용되는 솔트입니다 (rclone.conf의 password2에 해당).',
 	defaultSaltWarning: ' ⚠️ 기본 솔트 ("rclone") 사용은 보안에 취약합니다.',
 	defaultSaltPlaceholder: 'rclone',
@@ -510,12 +554,17 @@ const ko: TranslationSchema = {
 };
 
 const ru: TranslationSchema = {
+	savePassphraseOnDiskName: 'Сохранять пароль на диске',
+	savePassphraseOnDiskDesc: 'Если отключено (рекомендуется), пароль и соль хранятся только в ОЗУ (RAM) текущей сессии и не сохраняются на диск.',
+	lockVaultName: 'Очистить пароль сеанса и соль из памяти',
+	lockVaultNotice: '🧹 Пароль сеанса и соль очищены из памяти.',
+
 	settingsHeading: 'Шифрование хранилища',
 	settingsHeadingDesc: 'Клиентское шифрование 1:1, совместимое с RCLONE Crypt. Файлы и папки, зашифрованные здесь, могут быть расшифрованы через RCLONE CLI и наоборот.',
-	defaultPassphraseName: 'Парольная фраза по умолчанию',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'Мастер-пароль для шифрования/расшифровки в 1 клик.',
 	defaultPassphrasePlaceholder: 'Введите мастер-пароль...',
-	defaultSaltName: 'Соль по умолчанию (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'Соль, используемая вместе с паролем (соответствует password2 в rclone.conf).',
 	defaultSaltWarning: ' ⚠️ Использование соли по умолчанию ("rclone") менее безопасно.',
 	defaultSaltPlaceholder: 'rclone',
@@ -563,12 +612,17 @@ const ru: TranslationSchema = {
 };
 
 const ar: TranslationSchema = {
+	savePassphraseOnDiskName: 'حفظ كلمة المرور على القرص',
+	savePassphraseOnDiskDesc: 'إذا تم التعطيل (موصى به)، يتم الاحتفاظ بكلمة المرور والملح في الذاكرة (RAM) فقط للجلسة الحالية ولا يتم تخزينها على القرص.',
+	lockVaultName: 'مسح كلمة مرور الجلسة والملح من الذاكرة',
+	lockVaultNotice: '🧹 تم مسح كلمة مرور الجلسة والملح من الذاكرة.',
+
 	settingsHeading: 'تشفير الخزنة',
 	settingsHeadingDesc: 'تشفير 1:1 من جانب العميل متوافق مع RCLONE Crypt. يمكن فك تشفير الملفات والمجلدات المشفرة هنا مباشرة بواسطة RCLONE CLI والعكس صحيح.',
-	defaultPassphraseName: 'عبارة المرور الافتراضية',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'عبارة المرور الرئيسية المستخدمة للتشفير/فك التشفير بنقرة واحدة.',
 	defaultPassphrasePlaceholder: 'أدخل عبارة المرور الرئيسية...',
-	defaultSaltName: 'الملح الافتراضي (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'الملح المستخدم جنبًا إلى جنب مع عبارة المرور (يطابق password2 في rclone.conf).',
 	defaultSaltWarning: ' ⚠️ استخدام الملح الافتراضي ("rclone") أضعف ضد هجمات جدول التشفير.',
 	defaultSaltPlaceholder: 'rclone',
@@ -616,12 +670,17 @@ const ar: TranslationSchema = {
 };
 
 const he: TranslationSchema = {
+	savePassphraseOnDiskName: 'שמור סיסמה בדיסק',
+	savePassphraseOnDiskDesc: 'אם מבוטל (מומלץ), הסיסמה וה-Salt נשמרים ב-RAM בלבד עבור ההפעלה הנוכחית ואינם נשמרים בדיסק.',
+	lockVaultName: 'נקה סיסמת הפעלה ו-Salt מהזיכרון',
+	lockVaultNotice: '🧹 סיסמת ההפעלה וה-Salt נוקו מהזיכרון.',
+
 	settingsHeading: 'הצפנת כספת',
 	settingsHeadingDesc: 'הצפנת צד-לקוח 1:1 התואמת ל-RCLONE Crypt. קבצים ותיקיות המוצפנים כאן ניתנים לפענוח ישירות על ידי RCLONE CLI ולהיפך.',
-	defaultPassphraseName: 'סיסמת ברירת מחדל',
+	defaultPassphraseName: 'Password or pass phrase (for encryption)',
 	defaultPassphraseDesc: 'סיסמת מאסטר המשמשת להצפנה/פענוח בלחיצה אחת.',
 	defaultPassphrasePlaceholder: 'הזן סיסמת מאסטר...',
-	defaultSaltName: 'Salt ברירת מחדל (password2)',
+	defaultSaltName: 'Password or pass phrase (for salt)',
 	defaultSaltDesc: 'Salt המשמש לצד הסיסמה (תואם ל-password2 ב-rclone.conf).',
 	defaultSaltWarning: ' ⚠️ שימוש ב-Salt ברירת מחדל ("rclone") חלש יותר.',
 	defaultSaltPlaceholder: 'rclone',
