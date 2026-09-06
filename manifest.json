@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-rcrypt",
+	"name": "RCrypt",
+	"version": "1.0.0",
+	"minAppVersion": "1.10.0",
+	"description": "Obsidian Plugin",
+	"author": "emarpiee",
+	"authorUrl": "https://github.com/emarpiee",
+	"isDesktopOnly": false
+}

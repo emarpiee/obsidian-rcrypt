@@ -1,0 +1,7 @@
+node_modules/
+main.js
+styles.css
+*.log
+coverage/
+dist/
+temp/
