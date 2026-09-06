@@ -1,4 +1,5 @@
 import { App, Modal, Notice, Setting, setIcon } from 'obsidian';
+import { getText } from '../i18n/i18n';
 
 export interface PassphrasePromptResult {
 	passphrase: string;
@@ -25,6 +26,7 @@ export class PassphraseModal extends Modal {
 
 	onOpen(): void {
 		const { contentEl } = this;
+		const t = getText();
 		contentEl.empty();
 
 		contentEl.createEl('h3', { text: this.modalTitle });
@@ -34,10 +36,10 @@ export class PassphraseModal extends Modal {
 
 		// Passphrase Input Setting with Toggle Password Visibility button
 		const passSetting = new Setting(contentEl)
-			.setName('Passphrase')
-			.setDesc('Enter the encryption/decryption passphrase')
+			.setName(t.modalPassphraseName)
+			.setDesc(t.modalPassphraseDesc)
 			.addText((text) => {
-				text.setPlaceholder('Enter passphrase...');
+				text.setPlaceholder(t.modalPassphrasePlaceholder);
 				text.inputEl.type = 'password';
 				text.onChange((value) => {
 					this.passphrase = value;
@@ -64,11 +66,11 @@ export class PassphraseModal extends Modal {
 
 		// Salt Input Setting (Masked as password) with Toggle Visibility button
 		const saltSetting = new Setting(contentEl)
-			.setName('Salt')
-			.setDesc('Salt / password2 (optional, defaults to settings or "rclone")')
+			.setName(t.modalSaltName)
+			.setDesc(t.modalSaltDesc)
 			.addText((text) => {
 				text.setValue(this.salt);
-				text.setPlaceholder('rclone');
+				text.setPlaceholder(t.defaultSaltPlaceholder);
 				text.inputEl.type = 'password';
 				text.onChange((value) => {
 					this.salt = value;
@@ -93,11 +95,11 @@ export class PassphraseModal extends Modal {
 
 		new Setting(contentEl).addButton((btn) => {
 			btn
-				.setButtonText('Confirm')
+				.setButtonText(t.modalConfirmBtn)
 				.setCta()
 				.onClick(async () => {
 					if (!this.passphrase) {
-						errorDiv.setText('⚠️ Please enter a passphrase.');
+						errorDiv.setText(t.modalErrPassphraseRequired);
 						errorDiv.setCssProps({ display: 'block' });
 						return;
 					}
@@ -107,9 +109,9 @@ export class PassphraseModal extends Modal {
 						if (success) {
 							this.close();
 						} else {
-							errorDiv.setText('❌ Decryption failed. Incorrect passphrase or salt.');
+							errorDiv.setText(t.modalErrDecryptFailed);
 							errorDiv.setCssProps({ display: 'block' });
-							new Notice('Decryption failed. Please check your passphrase.');
+							new Notice(t.modalErrDecryptFailed);
 						}
 					} catch (err: unknown) {
 						const msg = err instanceof Error ? err.message : 'Invalid passphrase or file error.';

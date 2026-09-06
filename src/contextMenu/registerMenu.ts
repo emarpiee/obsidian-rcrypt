@@ -1,4 +1,5 @@
 import { Menu, Notice, TAbstractFile, TFile, TFolder } from 'obsidian';
+import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
 import { PassphraseModal } from '../ui/modals';
 
@@ -19,13 +20,14 @@ export function registerContextMenu(plugin: RCryptPlugin): void {
 function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]): void {
 	if (!files || files.length === 0) return;
 
+	const t = getText();
 	const isFolder = files.length === 1 && files[0] instanceof TFolder;
 	const count = files.length;
 
 	// Encrypt options
 	menu.addItem((item) => {
 		item
-			.setTitle(count > 1 ? `Encrypt ${count} items` : (isFolder ? 'Encrypt folder' : 'Encrypt file'))
+			.setTitle(count > 1 ? t.encryptItems(count) : (isFolder ? t.encryptFolder : t.encryptFile))
 			.setIcon('lock')
 			.onClick(() => {
 				void processItems(plugin, files, 'encrypt', false);
@@ -34,7 +36,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 
 	menu.addItem((item) => {
 		item
-			.setTitle('Encrypt with custom passphrase...')
+			.setTitle(t.encryptCustomPassphrase)
 			.setIcon('key')
 			.onClick(() => {
 				void processItems(plugin, files, 'encrypt', true);
@@ -46,7 +48,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 	// Decrypt options
 	menu.addItem((item) => {
 		item
-			.setTitle(count > 1 ? `Decrypt ${count} items` : (isFolder ? 'Decrypt folder' : 'Decrypt file'))
+			.setTitle(count > 1 ? t.decryptItems(count) : (isFolder ? t.decryptFolder : t.decryptFile))
 			.setIcon('unlock')
 			.onClick(() => {
 				void processItems(plugin, files, 'decrypt', false);
@@ -55,7 +57,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 
 	menu.addItem((item) => {
 		item
-			.setTitle('Decrypt with custom passphrase...')
+			.setTitle(t.decryptCustomPassphrase)
 			.setIcon('key')
 			.onClick(() => {
 				void processItems(plugin, files, 'decrypt', true);
@@ -79,10 +81,13 @@ async function processItems(
 	action: 'encrypt' | 'decrypt',
 	useCustomPrompt: boolean
 ): Promise<void> {
+	const t = getText();
+	const title = action === 'encrypt' ? t.modalTitleEncrypt(items.length) : t.modalTitleDecrypt(items.length);
+
 	if (useCustomPrompt || !plugin.settings.passphrase) {
 		new PassphraseModal(
 			plugin.app,
-			`${action === 'encrypt' ? 'Encrypt' : 'Decrypt'} ${items.length} item(s)`,
+			title,
 			plugin.settings.salt,
 			async (res) => {
 				const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt);
@@ -107,6 +112,7 @@ async function executeBatchAction(
 	passphrase: string,
 	salt: string
 ): Promise<{ successCount: number; failCount: number }> {
+	const t = getText();
 	let successCount = 0;
 	let failCount = 0;
 
@@ -224,15 +230,19 @@ async function executeBatchAction(
 	if (successCount > 0 || failCount > 0) {
 		if (failCount > 0 && successCount === 0) {
 			new Notice(
-				`❌ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} failed (${failCount} item${failCount > 1 ? 's' : ''}): ${firstErrorMessage}`
+				action === 'encrypt'
+					? t.noticeEncryptFailed(failCount, firstErrorMessage)
+					: t.noticeDecryptFailed(failCount, firstErrorMessage)
 			);
 		} else if (failCount > 0) {
 			new Notice(
-				`⚠️ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} finished with errors: ${successCount} succeeded, ${failCount} failed. (${firstErrorMessage})`
+				t.noticeActionFinishedWithErrors(action, successCount, failCount, firstErrorMessage)
 			);
 		} else {
 			new Notice(
-				`✅ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} completed: ${successCount} item${successCount > 1 ? 's' : ''} processed.`
+				action === 'encrypt'
+					? t.noticeEncryptSuccess(successCount)
+					: t.noticeDecryptSuccess(successCount)
 			);
 		}
 	}

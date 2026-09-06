@@ -1,4 +1,5 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
+import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
 import { FilenameEncoding, FilenameEncryptionMode } from '../types';
 
@@ -12,22 +13,21 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const { containerEl } = this;
+		const t = getText();
 
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Vault encryption')
-			.setDesc(
-				'1:1 client-side encryption compatible with RCLONE Crypt. Files and folders encrypted here can be directly decrypted by RCLONE CLI and vice versa using matching passphrase, salt, and fileame encryption settings.'
-			)
+			.setName(t.settingsHeading)
+			.setDesc(t.settingsHeadingDesc)
 			.setHeading();
 
 		new Setting(containerEl)
-			.setName('Default passphrase')
-			.setDesc('Master passphrase used for 1-click encryption/decryption.')
+			.setName(t.defaultPassphraseName)
+			.setDesc(t.defaultPassphraseDesc)
 			.addText((text) => {
 				text
-					.setPlaceholder('Enter master passphrase...')
+					.setPlaceholder(t.defaultPassphrasePlaceholder)
 					.setValue(this.plugin.settings.passphrase)
 					.onChange(async (value) => {
 						this.plugin.settings.passphrase = value;
@@ -37,16 +37,16 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('Default salt (password2)')
+			.setName(t.defaultSaltName)
 			.setDesc(
-				'Salt used alongside passphrase (corresponds to password2 in rclone.conf). Setting a custom salt is strongly recommended.' +
+				t.defaultSaltDesc +
 					(!this.plugin.settings.salt || this.plugin.settings.salt === 'rclone'
-						? ' ⚠️ Using default salt ("rclone") is weaker against rainbow table attacks.'
+						? t.defaultSaltWarning
 						: '')
 			)
 			.addText((text) => {
 				text
-					.setPlaceholder('rclone')
+					.setPlaceholder(t.defaultSaltPlaceholder)
 					.setValue(this.plugin.settings.salt)
 					.onChange(async (value) => {
 						this.plugin.settings.salt = value;
@@ -56,13 +56,13 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('Filename encryption mode')
-			.setDesc('Mode matching crypt-filename-encryption in rclone.conf')
+			.setName(t.filenameEncryptionModeName)
+			.setDesc(t.filenameEncryptionModeDesc)
 			.addDropdown((dropdown) => {
 				dropdown
-					.addOption('standard', 'Standard (AES-256 EME - Recommended)')
-					.addOption('obfuscate', 'Obfuscate (Light rotation)')
-					.addOption('off', 'Off (Filenames left in plaintext)')
+					.addOption('standard', t.modeStandard)
+					.addOption('obfuscate', t.modeObfuscate)
+					.addOption('off', t.modeOff)
 					.setValue(this.plugin.settings.filenameEncryptionMode)
 					.onChange(async (value) => {
 						this.plugin.settings.filenameEncryptionMode = value as FilenameEncryptionMode;
@@ -72,12 +72,12 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('Filename encoding')
-			.setDesc('Text encoding matching filename_encoding in rclone.conf')
+			.setName(t.filenameEncodingName)
+			.setDesc(t.filenameEncodingDesc)
 			.addDropdown((dropdown) => {
 				dropdown
-					.addOption('base32', 'Base32 (Standard lowercase)')
-					.addOption('base64', 'Base64 (URL-safe, case-sensitive)')
+					.addOption('base32', t.encodingBase32)
+					.addOption('base64', t.encodingBase64)
 					.setValue(this.plugin.settings.filenameEncoding)
 					.onChange(async (value) => {
 						this.plugin.settings.filenameEncoding = value as FilenameEncoding;
@@ -86,8 +86,8 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		const suffixSetting = new Setting(containerEl)
-			.setName('Encrypted file suffix')
-			.setDesc('Extension appended when filename encryption is "Off" (corresponds to --crypt-suffix in rclone).')
+			.setName(t.encryptedSuffixName)
+			.setDesc(t.encryptedSuffixDesc)
 			.addText((text) => {
 				text
 					.setPlaceholder('.bin')
@@ -98,7 +98,6 @@ export class RCryptSettingTab extends PluginSettingTab {
 					});
 			});
 
-		// Official Rclone approach: Suffix only applies when filename_encryption is "off"
 		const updateSuffixVisibility = () => {
 			if (this.plugin.settings.filenameEncryptionMode === 'off') {
 				suffixSetting.settingEl.show();
@@ -107,12 +106,11 @@ export class RCryptSettingTab extends PluginSettingTab {
 			}
 		};
 
-		// Initial check
 		updateSuffixVisibility();
 
 		new Setting(containerEl)
-			.setName('Encrypt selected folders')
-			.setDesc('When right-clicking a folder, encrypt/rename the target folder itself in addition to its contents.')
+			.setName(t.encryptFolderNamesName)
+			.setDesc(t.encryptFolderNamesDesc)
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.encryptFolderNames).onChange(async (value) => {
 					this.plugin.settings.encryptFolderNames = value;
@@ -121,8 +119,8 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('Auto-delete source file')
-			.setDesc('Automatically delete unencrypted file after successful encryption.')
+			.setName(t.autoDeleteSourceName)
+			.setDesc(t.autoDeleteSourceDesc)
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.autoDeleteSource).onChange(async (value) => {
 					this.plugin.settings.autoDeleteSource = value;
