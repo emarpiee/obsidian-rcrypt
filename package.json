@@ -11,7 +11,7 @@
 		"lint:fix": "eslint ./src/**/*.ts --fix",
 		"prettier": "prettier --write \"./src/**/*.{ts,tsx}\"",
 		"clean": "npm run prettier && npm run lint:fix",
-		"health": "npm run lint && npm run typecheck",
+		"health": "npm run lint && npm run typecheck && npm run test",
 		"bump": "node version-bump.mjs",
 		"release": "node release.mjs",
 		"release:patch": "npm run build && npm run health && npm version patch && npm run bump && npm run release",
@@ -43,5 +43,9 @@
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.64.0",
 		"vitest": "^4.1.5"
+	},
+	"dependencies": {
+		"@noble/ciphers": "^2.4.0",
+		"@noble/hashes": "^2.4.0"
 	}
 }

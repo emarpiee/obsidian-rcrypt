@@ -1,0 +1,9 @@
+{
+  "passphrase": "test12345",
+  "salt": "",
+  "filenameEncryptionMode": "standard",
+  "filenameEncoding": "base32",
+  "encryptedExtension": ".rcrypt",
+  "autoDeleteSource": true,
+  "rememberSessionPassphrase": true
+}
