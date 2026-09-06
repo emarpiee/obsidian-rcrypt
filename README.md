@@ -1,3 +1,6 @@
+> [!NOTE]
+WORK IN PROGRESS
+
 # Obsidian RCrypt
 
 Client-side file and folder encryption for [Obsidian](https://obsidian.md), fully compatible with official [Rclone Crypt](https://rclone.org/crypt/).
@@ -17,6 +20,40 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
   - **Off** (Plaintext filenames with optional file extension suffix)
 - **Automatic Fallback Handling**: Decryption gracefully handles unencrypted or already decrypted files within bulk operations.
 - **Internationalization (i18n)**: Multilingual UI support with automatic locale matching and RTL language handling.
+
+---
+
+## Installation
+
+### Option 1: Via BRAT (Recommended for pre-releases)
+1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian-42-brat) in Obsidian (**Settings** -> **Community plugins** -> **Search for "BRAT"**).
+2. Open BRAT settings and click **Add Beta plugin**.
+3. Enter repository URL: `https://github.com/emarpiee/obsidian-rcrypt`
+4. Click **Add Plugin** and enable **RCrypt** in Obsidian's Community Plugins list.
+
+### Option 2: Manual Installation
+1. Download `main.js`, `manifest.json`, and `styles.css` (if available) from the latest [GitHub Release](https://github.com/emarpiee/obsidian-rcrypt/releases).
+2. Create a directory named `obsidian-rcrypt` inside your vault's plugins folder (`<vault>/.obsidian/plugins/obsidian-rcrypt/`).
+3. Move the downloaded files into `<vault>/.obsidian/plugins/obsidian-rcrypt/`.
+4. Reload Obsidian and enable **RCrypt** under **Settings** -> **Community plugins**.
+
+### Option 3: Building from Source
+1. Clone the repository into your vault's plugins folder:
+   ```bash
+   cd /path/to/your/vault/.obsidian/plugins/
+   git clone https://github.com/emarpiee/obsidian-rcrypt.git
+   cd obsidian-rcrypt
+   ```
+2. Install dependencies & build:
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Run the health check before submitting pull requests:
+   ```bash
+   npm run health
+   ```
+4. Enable the plugin under **Settings** -> **Community plugins**.
 
 ---
 
@@ -46,7 +83,7 @@ When **Save password on disk** is enabled, passwords and salts are stored inside
 - **Cipher Details**: The plaintext password or salt is encrypted using **AES-256 in Counter (CTR) mode** initialized with a 16-byte cryptographically secure random Initialization Vector (`IV`) generated per write operation.
 - **Obscure Key**: Uses Rclone's internal fixed 256-bit key (`9c 93 5b 48 73 0a 55 4d 6b 5b 2b 32 7b 92 5c 7b ...`).
 - **Formatting**: The 16-byte `IV` is prepended to the ciphertext, and the resulting payload is Base64 encoded (URL-safe, without trailing `=` padding).
-- **Interoperability**: Passwords obscured by `obsidian-rcrypt` can be directly decoded with `rclone reveal <obscured_string>` and vice-versa.
+- **Interoperability**: Passwords obscured by `obsidian-rcrypt` can be directly decoded using standard Rclone credential parameters and vice-versa.
 
 > [!NOTE]
 > While on-disk storage is encrypted/obscured so passwords cannot be read directly in plaintext by eye or simple text scrapers, any process or user with access to your `data.json` and the open-source Rclone key can reveal them. For maximum security, disable **Save password on disk** to use RAM-Only mode.
@@ -121,7 +158,6 @@ For detailed specifications on Rclone's encryption standard and CLI operations, 
 - [Rclone Crypt Documentation](https://rclone.org/crypt/) — Official overview of Rclone Crypt, configuration options, and parameters.
 - [Rclone Crypt Technical Specification](https://rclone.org/crypt/#technical-specification) — Deep dive into Rclone key derivation (`scrypt`), block layout (`NaCl SecretBox`), and filename encryption modes.
 - [Rclone Obscure Command](https://rclone.org/commands/rclone_obscure/) — Official documentation for the `rclone obscure` CLI tool.
-- [Rclone Reveal Command](https://rclone.org/commands/rclone_reveal/) — Official documentation for the `rclone reveal` CLI tool.
 - [Rclone Source Code (`backend/crypt`)](https://github.com/rclone/rclone/tree/master/backend/crypt) — Official Rclone Crypt Go implementation repository.
 
 ---
