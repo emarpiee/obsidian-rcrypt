@@ -1,90 +1,62 @@
 # Obsidian Rclone Crypt (`obsidian-rcrypt`)
 
-🔐 **1:1 Rclone Crypt** file and folder encryption for [Obsidian](https://obsidian.md). 
+Client-side file and folder encryption for [Obsidian](https://obsidian.md), fully compatible with official [Rclone Crypt](https://rclone.org/crypt/).
 
-Designed to be **mobile-first**, **100% offline**, and **completely compatible** with the official [Rclone](https://rclone.org/crypt/) CLI.
-
----
-
-## ✨ Key Features
-
-- **1:1 Official Rclone Crypt Specification**: Encrypt files in Obsidian and seamlessly decrypt them on your server or desktop using official `rclone cat` or `rclone mount`.
-- **Right-Click Context Menu**: Encrypt or decrypt single notes, media files, full folders, or bulk multi-file selections directly from Obsidian's File Explorer.
-- **Mobile Friendly & 100% Offline**: Built with pure WebCrypto / TypeScript libraries (`@noble/hashes` & `@noble/ciphers`). No `rclone` binary installation is required on iOS, Android, macOS, Windows, or Linux.
-- **Zero-Trace Quick View**: Right-click any `.rcrypt` file and choose **"Safe View Encrypted File (In-Memory)"** to preview notes or text in memory without writing unencrypted data to your device's disk.
-- **Flexible Passphrase Modes**:
-  - **Unified Master Passphrase**: Set your vault passphrase & salt once in Settings for 1-click context menu actions.
-  - **Custom Passphrase Option**: Right-click -> **"Encrypt with Custom Passphrase..."** for per-file or per-folder password overrides.
+`obsidian-rcrypt` runs 100% offline using standard web cryptography primitives (`@noble/ciphers` and `@noble/hashes`). It requires no local `rclone` binary installation and runs on desktop and mobile platforms (Android, iOS, macOS, Windows, Linux).
 
 ---
 
-## 🛠️ How It Works (Cryptographic Architecture)
+## Features
 
-`obsidian-rcrypt` implements Rclone's exact cryptographic specifications:
-
-1. **Key Derivation Function (KDF)**:
-   - Uses `scrypt` with Rclone parameters (`N=16384`, `r=8`, `p=1`) to derive a 64-byte key (32 bytes `dataKey` + 32 bytes `nameKey`) from your **Passphrase** and **Salt** (`password2`).
-2. **File Payload Encryption**:
-   - Files are encrypted using **NaCl SecretBox (`XSalsa20-Poly1305`)** in authenticated 64 KiB chunks.
-   - Every file starts with the official Rclone 8-byte magic header `RCLONE\x00\x00` followed by a random 24-byte nonce.
-3. **Filename Privacy**:
-   - Supports `obfuscate` (character shift rotation) and `off` modes with standard text encodings (`base32` and `base64`).
-
----
-
-## 🚀 Usage Guide
-
-### 1. Plugin Configuration
-1. Open **Obsidian Settings** -> **Rclone Crypt Settings**.
-2. Enter your **Default Passphrase** and **Default Salt** (matching your `rclone.conf` credentials).
-3. Set your preferred **Encrypted File Suffix** (default: `.rcrypt`).
-4. Toggle **Auto-Delete Source File** to automatically clean up unencrypted originals after successful encryption.
-
-### 2. Encrypting & Decrypting Files
-- **To Encrypt**: Right-click any file or folder in Obsidian -> click **"Encrypt (Rclone Crypt)"**.
-- **To Decrypt**: Right-click an encrypted `.rcrypt` file or folder -> click **"Decrypt (Rclone Crypt)"**.
-- **To Safe-Preview**: Right-click an encrypted `.rcrypt` file -> click **"Safe View Encrypted File (In-Memory)"**.
+- **Rclone 1:1 Compatibility**: Files encrypted inside Obsidian can be mounted or extracted directly with Rclone CLI (`rclone cat`, `rclone mount`, `rclone copy`).
+- **Crypt Profile Manager**: Create and manage multiple profiles with distinct passphrases, salts, filename encryption modes, and encodings.
+- **Native Context Submenus**: Right-click notes, media, or folders to encrypt/decrypt using the active profile, a specific profile, or custom credentials.
+- **Filename Encryption Modes**:
+  - **Standard** (AES-256-EME with PKCS#7 padding)
+  - **Obfuscate** (Rclone character-rotation cipher)
+  - **Off** (Plaintext filenames with optional file extension suffix)
+- **Automatic Fallback Handling**: Decryption gracefully handles unencrypted or already decrypted files within bulk operations.
+- **Internationalization (i18n)**: Multilingual UI support with automatic locale matching and RTL language handling.
 
 ---
 
-## 📖 Rclone Interoperability Guide
+## Technical Specifications
 
-Files encrypted with `obsidian-rcrypt` can be decrypted anywhere using the official Rclone CLI.
-
-### Sample `rclone.conf` setup:
-
-```ini
-[myvault]
-type = crypt
-remote = /path/to/your/obsidian/vault
-password = your_obscured_password
-password2 = your_obscured_salt
-filename_encryption = obfuscate
-```
-
-### Inspecting an encrypted note via Rclone CLI:
-
-```bash
-# Stream and decrypt directly in terminal:
-rclone cat myvault:SecretNote.md.rcrypt
-
-# Or mount your encrypted vault folder as a drive:
-rclone mount myvault: /mnt/secretvault
-```
+| Component | Implementation |
+| :--- | :--- |
+| **Key Derivation** | `scrypt` (`N=16384`, `r=8`, `p=1`) deriving 64-byte key (32-byte data key, 32-byte name key) |
+| **Payload Cipher** | `NaCl SecretBox` (XSalsa20-Poly1305) in 64 KiB blocks with 16-byte Poly1305 MAC tags |
+| **Header Format** | 8-byte magic header (`RCLONE\x00\x00`) followed by 24-byte initial nonce |
+| **Password Storage** | Passphrases and salts stored obscured in `data.json` using Rclone `obscure` standard |
 
 ---
 
-## 🔒 Security Best Practices
+## Usage
 
-> [!WARNING]
-> **Backup Your Passphrase & Salt!** 
-> Rclone Crypt uses zero-knowledge encryption. If you lose your passphrase or salt, your encrypted files **cannot be recovered by anyone**.
+### 1. Configure Crypt Profiles
+1. Go to **Obsidian Settings** -> **Rclone Crypt**.
+2. Select or create a **Crypt Profile**.
+3. Enter your **Passphrase** and **Salt** (corresponding to `password` and `password2` in your Rclone configuration).
+4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32` or `Base64`).
 
-> [!TIP]
-> **Custom Salt Recommended**: Leaving your salt blank or set to `"rclone"` uses Rclone's fallback default. Setting a custom salt in settings provides maximum protection against rainbow table attacks.
+### 2. Encrypt & Decrypt via Context Menu
+- Right-click any file, selection of files, or folder in Obsidian File Explorer.
+- Open **Encrypt file** or **Decrypt file** from the context menu.
+- Choose your target profile or select **Custom Passphrase...** to enter one-time credentials.
 
 ---
 
-## 📄 License
+## Rclone CLI Compatibility
+
+Files encrypted by `obsidian-rcrypt` can be decrypted directly using the Rclone CLI by setting up a `crypt` remote in `rclone.conf` with matching parameters:
+
+- `password` and `password2` matching your profile's Passphrase and Salt.
+- `filename_encryption` set to `standard`, `obfuscate`, or `off`.
+- `filename_encoding` set to `base32` or `base64`.
+
+---
+
+## License
 
 GPL-3.0 License
+
