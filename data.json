@@ -1,6 +1,6 @@
 {
-  "passphrase": "test12345",
-  "salt": "",
+  "passphrase": "uCbWWlO0b3MnTzIPHU0milKU5ndrAmSc-g",
+  "salt": "KgAo8K_jYxerv0IiHZfpVdO0qfkr3t0",
   "filenameEncryptionMode": "standard",
   "filenameEncoding": "base32",
   "encryptedExtension": ".rcrypt",

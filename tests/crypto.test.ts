@@ -3,6 +3,7 @@ import { deriveRcloneKeys } from '../src/crypto/kdf';
 import { decryptPayload, encryptPayload } from '../src/crypto/payloadEngine';
 import { decryptFilename, encryptFilename } from '../src/crypto/filenameEngine';
 import { decodeBase32, decodeBase64URL, encodeBase32, encodeBase64URL } from '../src/crypto/encoders';
+import { obscurePassword, revealPassword } from '../src/crypto/obscure';
 
 describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 	it('should derive keys deterministically using scrypt', () => {
@@ -13,6 +14,17 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		const keys2 = deriveRcloneKeys('mysecretpassword', 'mysalt');
 		expect(keys.dataKey).toEqual(keys2.dataKey);
 		expect(keys.nameKey).toEqual(keys2.nameKey);
+	});
+
+	it('should obscure and reveal passwords matching rclone obscure standard', () => {
+		const rawPassword = 'test12345password!';
+		const obscured = obscurePassword(rawPassword);
+
+		expect(obscured).not.toBe(rawPassword);
+		expect(obscured.length).toBeGreaterThan(10);
+
+		const revealed = revealPassword(obscured);
+		expect(revealed).toBe(rawPassword);
 	});
 
 	it('should encrypt and decrypt file payload with RCLONE header', () => {
