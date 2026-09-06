@@ -1,4 +1,5 @@
 import { Notice, Plugin } from 'obsidian';
+import './main.css';
 import { registerContextMenu } from './contextMenu/registerMenu';
 import { obscurePassword, revealPassword } from './crypto/obscure';
 import { RCryptEngine } from './crypto/rcryptEngine';
