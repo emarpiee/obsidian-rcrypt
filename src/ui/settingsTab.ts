@@ -44,6 +44,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 						this.plugin.settings.salt = value;
 						await this.plugin.saveSettings();
 					});
+				text.inputEl.type = 'password';
 			});
 
 		if (!this.plugin.settings.salt || this.plugin.settings.salt === 'rclone') {

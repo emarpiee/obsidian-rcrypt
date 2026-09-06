@@ -87,9 +87,13 @@ async function previewFile(plugin: RCryptPlugin, file: TFile): Promise<void> {
 				'Enter passphrase to preview',
 				salt,
 				(res) => {
-					if (!res) return;
-					const decrypted = plugin.engine.decryptFile(bytes, res.passphrase, res.salt);
-					new DecryptedPreviewModal(plugin.app, file.name, decrypted).open();
+					try {
+						const decrypted = plugin.engine.decryptFile(bytes, res.passphrase, res.salt);
+						new DecryptedPreviewModal(plugin.app, file.name, decrypted).open();
+						return true;
+					} catch {
+						return false;
+					}
 				}
 			).open();
 			return;
@@ -114,9 +118,9 @@ async function processItems(
 			plugin.app,
 			`${action === 'encrypt' ? 'Encrypt' : 'Decrypt'} ${items.length} item(s)`,
 			plugin.settings.salt,
-			(res) => {
-				if (!res) return;
-				void executeBatchAction(plugin, items, action, res.passphrase, res.salt);
+			async (res) => {
+				const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt);
+				return result.successCount > 0 && result.failCount === 0;
 			}
 		).open();
 	} else {
@@ -136,7 +140,7 @@ async function executeBatchAction(
 	action: 'encrypt' | 'decrypt',
 	passphrase: string,
 	salt: string
-): Promise<void> {
+): Promise<{ successCount: number; failCount: number }> {
 	let successCount = 0;
 	let failCount = 0;
 
@@ -204,9 +208,13 @@ async function executeBatchAction(
 		}
 	}
 
-	new Notice(
-		`${action === 'encrypt' ? 'Encryption' : 'Decryption'} complete: ${successCount} succeeded, ${failCount} failed.`
-	);
+	if (successCount > 0 || failCount > 0) {
+		new Notice(
+			`${action === 'encrypt' ? 'Encryption' : 'Decryption'} complete: ${successCount} succeeded, ${failCount} failed.`
+		);
+	}
+
+	return { successCount, failCount };
 }
 
 function toArrayBuffer(uint8: Uint8Array): ArrayBuffer {
