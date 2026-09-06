@@ -38,7 +38,7 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
 > - **RAM Memory Exposure**: When "Save password on disk" is disabled, passwords reside in RAM during your Obsidian session. Memory-dump attacks or unauthorized local processes with process-memory read permissions could inspect process RAM.
 > - **Third-Party Sync Plugins**: If you sync your vault using third-party plugins or cloud storage services (Git, iCloud, Obsidian Sync), ensure you understand whether you are syncing unencrypted source files or encrypted files.
 > - **Limitation of Liability**: The developer(s) of this plugin accept no legal responsibility or liability for any data loss, corruption, security breach, unauthorized access, or any consequences resulting from your use or misuse of this software. You are solely responsible for managing your credentials and backing up your data.
-> - **No Warranty**: This software is provided "as is" without warranty of any kind, express or implied, under the GPL-3.0 License.
+> - **No Warranty**: This software is provided "as is" without warranty of any kind, express or implied, under the MIT License.
 
 ### How On-Disk Password Storage Works (`data.json`)
 When **Save password on disk** is enabled, passwords and salts are stored inside the plugin's `data.json` file in an encrypted/obscured format:
@@ -128,5 +128,5 @@ For detailed specifications on Rclone's encryption standard and CLI operations, 
 
 ## License
 
-GPL-3.0 License
+MIT License
 

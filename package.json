@@ -24,7 +24,7 @@
 	},
 	"keywords": [],
 	"author": "emarpiee",
-	"license": "GPL-3.0",
+	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.2",
