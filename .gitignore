@@ -1,7 +1,8 @@
 node_modules/
-main.js
-styles.css
+data.json
 *.log
 coverage/
 dist/
 temp/
+.DS_Store
+

@@ -145,11 +145,13 @@ async function executeBatchAction(
 	let failCount = 0;
 
 	const allFiles: TFile[] = [];
+	const topFolders: TFolder[] = [];
 
 	for (const item of items) {
 		if (item instanceof TFile) {
 			allFiles.push(item);
 		} else if (item instanceof TFolder) {
+			topFolders.push(item);
 			collectFolderFiles(item, allFiles);
 		}
 	}
@@ -205,6 +207,33 @@ async function executeBatchAction(
 			failCount++;
 			const msg = err instanceof Error ? err.message : 'Unknown processing error';
 			console.error(`Error processing file: ${msg}`);
+		}
+	}
+
+	// Rename target folder(s) if encryptFolderNames is enabled
+	if (plugin.settings.encryptFolderNames && topFolders.length > 0) {
+		for (const folder of topFolders) {
+			try {
+				if (action === 'encrypt') {
+					const encFolderName = plugin.engine.encryptName(folder.name, passphrase, salt);
+					const parentPath = folder.parent ? folder.parent.path : '';
+					const targetFolderPath = parentPath && parentPath !== '/' ? `${parentPath}/${encFolderName}` : encFolderName;
+					await plugin.app.fileManager.renameFile(folder, targetFolderPath);
+				} else {
+					let decFolderName = folder.name;
+					try {
+						decFolderName = plugin.engine.decryptName(folder.name, passphrase, salt);
+					} catch {
+						// Fallback if folder name was not encrypted
+					}
+					const parentPath = folder.parent ? folder.parent.path : '';
+					const targetFolderPath = parentPath && parentPath !== '/' ? `${parentPath}/${decFolderName}` : decFolderName;
+					await plugin.app.fileManager.renameFile(folder, targetFolderPath);
+				}
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : 'Folder rename error';
+				console.error(`Error renaming folder: ${msg}`);
+			}
 		}
 	}
 

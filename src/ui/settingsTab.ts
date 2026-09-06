@@ -15,7 +15,12 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl).setName('Vault encryption').setHeading();
+		new Setting(containerEl)
+			.setName('Vault encryption')
+			.setDesc(
+				'1:1 client-side encryption compatible with RCLONE Crypt. Files and folders encrypted here can be directly decrypted by RCLONE CLI and vice versa using matching passphrase, salt, and fileame encryption settings.'
+			)
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Default passphrase')
@@ -34,7 +39,10 @@ export class RCryptSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Default salt (password2)')
 			.setDesc(
-				'Salt used alongside passphrase (corresponds to password2 in rclone.conf). Setting a custom salt is strongly recommended.'
+				'Salt used alongside passphrase (corresponds to password2 in rclone.conf). Setting a custom salt is strongly recommended.' +
+					(!this.plugin.settings.salt || this.plugin.settings.salt === 'rclone'
+						? ' ⚠️ Using default salt ("rclone") is weaker against rainbow table attacks.'
+						: '')
 			)
 			.addText((text) => {
 				text
@@ -46,13 +54,6 @@ export class RCryptSettingTab extends PluginSettingTab {
 					});
 				text.inputEl.type = 'password';
 			});
-
-		if (!this.plugin.settings.salt || this.plugin.settings.salt === 'rclone') {
-			containerEl.createDiv({
-				cls: 'notice rcrypt-warning-notice',
-				text: '⚠️ Security notice: Using blank or default salt ("rclone") is weaker against rainbow table attacks. Consider setting a custom salt for maximum security.',
-			});
-		}
 
 		new Setting(containerEl)
 			.setName('Filename encryption mode')
@@ -94,6 +95,16 @@ export class RCryptSettingTab extends PluginSettingTab {
 						this.plugin.settings.encryptedExtension = value || '.rcrypt';
 						await this.plugin.saveSettings();
 					});
+			});
+
+		new Setting(containerEl)
+			.setName('Encrypt selected folders')
+			.setDesc('When right-clicking a folder, encrypt/rename the target folder itself in addition to its contents.')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.encryptFolderNames).onChange(async (value) => {
+					this.plugin.settings.encryptFolderNames = value;
+					await this.plugin.saveSettings();
+				});
 			});
 
 		new Setting(containerEl)

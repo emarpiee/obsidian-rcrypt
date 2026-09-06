@@ -9,6 +9,7 @@ export interface RCryptSettings {
 	encryptedExtension: string;
 	autoDeleteSource: boolean;
 	rememberSessionPassphrase: boolean;
+	encryptFolderNames: boolean;
 }
 
 export const DEFAULT_SETTINGS: RCryptSettings = {
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: RCryptSettings = {
 	encryptedExtension: '.rcrypt',
 	autoDeleteSource: true,
 	rememberSessionPassphrase: true,
+	encryptFolderNames: false,
 };
 
 export interface CryptoKeys {
