@@ -51,6 +51,8 @@ export default tseslint.config(
         },
       ],
       'linebreak-style': ['error', 'unix'],
+      'obsidianmd/settings-tab/prefer-setting-definitions': 'off',
+      'obsidianmd/settings-tab/prefer-update-over-display': 'off',
       indent: 'off',
       quotes: 'off',
       'no-mixed-spaces-and-tabs': 'off',
