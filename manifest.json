@@ -6,5 +6,9 @@
 	"description": "Client-side file and folder encryption for Obsidian, 100% compatible with Rclone Crypt.",
 	"author": "emarpiee",
 	"authorUrl": "https://github.com/emarpiee",
-	"isDesktopOnly": false
+	"isDesktopOnly": false,
+	"fundingUrl": {
+		"Ko-fi": "https://ko-fi.com/emarpiee",
+		"PayPal": "https://paypal.me/emarpiee"
+	}
 }
