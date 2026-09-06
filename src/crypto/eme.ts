@@ -1,17 +1,28 @@
 import { ecb } from '@noble/ciphers/aes.js';
 
-function doubleGF128(input: Uint8Array): Uint8Array {
-	const output = new Uint8Array(16);
-	let carry = 0;
-	for (let i = 15; i >= 0; i--) {
-		const byte = input[i];
-		output[i] = ((byte << 1) | carry) & 0xff;
-		carry = (byte & 0x80) ? 1 : 0;
+/**
+ * multByTwo - GF(2^128) multiplication as specified in EME-32 spec & rfjakob/eme:
+ * "Figure 4.1. C code for the multByTwo procedure"
+ */
+function multByTwo(out: Uint8Array, input: Uint8Array): void {
+	if (input.length !== 16) {
+		throw new Error('input length must be 16');
 	}
-	if (carry) {
-		output[15] ^= 0x87;
+	const tmp = new Uint8Array(16);
+
+	tmp[0] = (2 * input[0]) & 0xff;
+	if (input[15] >= 128) {
+		tmp[0] ^= 135;
 	}
-	return output;
+
+	for (let j = 1; j < 16; j++) {
+		tmp[j] = (2 * input[j]) & 0xff;
+		if (input[j - 1] >= 128) {
+			tmp[j] = (tmp[j] + 1) & 0xff;
+		}
+	}
+
+	out.set(tmp);
 }
 
 function xorBuffers(a: Uint8Array, b: Uint8Array): Uint8Array {
@@ -22,6 +33,9 @@ function xorBuffers(a: Uint8Array, b: Uint8Array): Uint8Array {
 	return res;
 }
 
+/**
+ * EME (Encrypt-Mix-Encrypt / ECB-Mix-ECB) cipher mode matching rfjakob/eme (used by Rclone).
+ */
 export class EMECipher {
 	private key: Uint8Array;
 
@@ -40,111 +54,77 @@ export class EMECipher {
 		return new Uint8Array(ecb(this.key, { disablePadding: true }).decrypt(block));
 	}
 
-	encrypt(tweak: Uint8Array, data: Uint8Array): Uint8Array {
-		if (data.length % 16 !== 0 || data.length === 0 || data.length > 16 * 256) {
-			throw new Error(`EME data length must be a non-zero multiple of 16 bytes up to 4096 bytes (got ${data.length})`);
+	/**
+	 * tabulateL - calculate L_i for messages up to length of m cipher blocks
+	 * L_0 = 2 * AESenc(K; 0)
+	 * L_i = 2 * L_{i-1}
+	 */
+	private tabulateL(m: number): Uint8Array[] {
+		const eZero = new Uint8Array(16);
+		const Li = this.aesEncrypt(eZero);
+
+		const LTable: Uint8Array[] = new Array(m);
+		for (let i = 0; i < m; i++) {
+			multByTwo(Li, Li);
+			LTable[i] = new Uint8Array(Li);
+		}
+		return LTable;
+	}
+
+	private transform(tweak: Uint8Array, inputData: Uint8Array, isEncrypt: boolean): Uint8Array {
+		if (inputData.length % 16 !== 0 || inputData.length === 0 || inputData.length > 16 * 128) {
+			throw new Error(`EME data length must be a non-zero multiple of 16 bytes up to 2048 bytes (got ${inputData.length})`);
 		}
 		if (tweak.length !== 16) {
 			throw new Error('EME tweak must be 16 bytes');
 		}
 
-		const m = data.length / 16;
-		const P: Uint8Array[] = [];
-		for (let i = 0; i < m; i++) {
-			P.push(data.subarray(i * 16, (i + 1) * 16));
+		const m = inputData.length / 16;
+		const C = new Uint8Array(inputData.length);
+		const LTable = this.tabulateL(m);
+
+		const PPj = new Uint8Array(16);
+		for (let j = 0; j < m; j++) {
+			const Pj = inputData.subarray(j * 16, (j + 1) * 16);
+			const xored = xorBuffers(Pj, LTable[j]);
+			const res = isEncrypt ? this.aesEncrypt(xored) : this.aesDecrypt(xored);
+			C.set(res, j * 16);
 		}
 
-		const L = this.aesEncrypt(new Uint8Array(16));
-		const LTable: Uint8Array[] = [L];
-		for (let i = 1; i <= m; i++) {
-			LTable.push(doubleGF128(LTable[i - 1]));
+		let MP = xorBuffers(C.subarray(0, 16), tweak);
+		for (let j = 1; j < m; j++) {
+			MP = xorBuffers(MP, C.subarray(j * 16, (j + 1) * 16));
 		}
 
-		const PP: Uint8Array[] = [];
-		const PPP: Uint8Array[] = [];
-		let C = new Uint8Array(16);
+		const MC = isEncrypt ? this.aesEncrypt(MP) : this.aesDecrypt(MP);
 
-		for (let i = 0; i < m; i++) {
-			const tmp = xorBuffers(P[i], LTable[i + 1]);
-			const encryptedTmp = xorBuffers(this.aesEncrypt(tmp), LTable[i + 1]);
-			PP.push(encryptedTmp);
-			C = new Uint8Array(xorBuffers(C, encryptedTmp));
+		let M = xorBuffers(MP, MC);
+		for (let j = 1; j < m; j++) {
+			multByTwo(M, M);
+			const CCCj = xorBuffers(C.subarray(j * 16, (j + 1) * 16), M);
+			C.set(CCCj, j * 16);
 		}
 
-		const M = xorBuffers(C, tweak);
-		const CCC = this.aesEncrypt(M);
+		let CCC1 = xorBuffers(MC, tweak);
+		for (let j = 1; j < m; j++) {
+			CCC1 = xorBuffers(CCC1, C.subarray(j * 16, (j + 1) * 16));
+		}
+		C.set(CCC1, 0);
 
-		let MC = new Uint8Array(16);
-		for (let i = 0; i < m; i++) {
-			if (i === 0) {
-				MC = new Uint8Array(xorBuffers(CCC, M));
-			} else {
-				MC = new Uint8Array(doubleGF128(MC));
-			}
-			PPP.push(xorBuffers(PP[i], MC));
+		for (let j = 0; j < m; j++) {
+			const block = C.subarray(j * 16, (j + 1) * 16);
+			const res = isEncrypt ? this.aesEncrypt(block) : this.aesDecrypt(block);
+			C.set(xorBuffers(res, LTable[j]), j * 16);
 		}
 
-		const result = new Uint8Array(data.length);
-		for (let i = 0; i < m; i++) {
-			const tmp = xorBuffers(PPP[i], LTable[i + 1]);
-			const encrypted = xorBuffers(this.aesEncrypt(tmp), LTable[i + 1]);
-			result.set(encrypted, i * 16);
-		}
+		return C;
+	}
 
-		return result;
+	encrypt(tweak: Uint8Array, data: Uint8Array): Uint8Array {
+		return this.transform(tweak, data, true);
 	}
 
 	decrypt(tweak: Uint8Array, data: Uint8Array): Uint8Array {
-		if (data.length % 16 !== 0 || data.length === 0 || data.length > 16 * 256) {
-			throw new Error(`EME data length must be a non-zero multiple of 16 bytes (got ${data.length})`);
-		}
-		if (tweak.length !== 16) {
-			throw new Error('EME tweak must be 16 bytes');
-		}
-
-		const m = data.length / 16;
-		const C: Uint8Array[] = [];
-		for (let i = 0; i < m; i++) {
-			C.push(data.subarray(i * 16, (i + 1) * 16));
-		}
-
-		const L = this.aesEncrypt(new Uint8Array(16));
-		const LTable: Uint8Array[] = [L];
-		for (let i = 1; i <= m; i++) {
-			LTable.push(doubleGF128(LTable[i - 1]));
-		}
-
-		const PPP: Uint8Array[] = [];
-		const PP: Uint8Array[] = [];
-		let C_sum = new Uint8Array(16);
-
-		for (let i = 0; i < m; i++) {
-			const tmp = xorBuffers(C[i], LTable[i + 1]);
-			const decryptedTmp = xorBuffers(this.aesDecrypt(tmp), LTable[i + 1]);
-			PPP.push(decryptedTmp);
-			C_sum = new Uint8Array(xorBuffers(C_sum, decryptedTmp));
-		}
-
-		const M = xorBuffers(C_sum, tweak);
-		const CCC = this.aesDecrypt(M);
-
-		let MC = new Uint8Array(16);
-		for (let i = 0; i < m; i++) {
-			if (i === 0) {
-				MC = new Uint8Array(xorBuffers(CCC, M));
-			} else {
-				MC = new Uint8Array(doubleGF128(MC));
-			}
-			PP.push(xorBuffers(PPP[i], MC));
-		}
-
-		const result = new Uint8Array(data.length);
-		for (let i = 0; i < m; i++) {
-			const tmp = xorBuffers(PP[i], LTable[i + 1]);
-			const decrypted = xorBuffers(this.aesDecrypt(tmp), LTable[i + 1]);
-			result.set(decrypted, i * 16);
-		}
-
-		return result;
+		return this.transform(tweak, data, false);
 	}
 }

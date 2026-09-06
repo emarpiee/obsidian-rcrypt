@@ -125,37 +125,3 @@ export class PassphraseModal extends Modal {
 		contentEl.empty();
 	}
 }
-
-export class DecryptedPreviewModal extends Modal {
-	private filename: string;
-	private content: Uint8Array;
-
-	constructor(app: App, filename: string, content: Uint8Array) {
-		super(app);
-		this.filename = filename;
-		this.content = content;
-	}
-
-	onOpen(): void {
-		const { contentEl } = this;
-		contentEl.empty();
-
-		contentEl.createEl('h3', { text: `Preview: ${this.filename}` });
-		contentEl.createEl('p', {
-			text: '🔒 Safe preview (in-memory only — not saved to disk)',
-			cls: 'rcrypt-preview-badge',
-		});
-
-		const textDecoder = new TextDecoder('utf-8');
-		const text = textDecoder.decode(this.content);
-
-		const container = contentEl.createDiv({ cls: 'rcrypt-preview-container' });
-		const pre = container.createEl('pre');
-		pre.setText(text);
-	}
-
-	onClose(): void {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
-}

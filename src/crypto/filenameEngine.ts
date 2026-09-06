@@ -1,4 +1,5 @@
-import { FilenameEncoding, FilenameEncryptionMode } from '../types';
+import { CryptoKeys, FilenameEncoding, FilenameEncryptionMode } from '../types';
+import { EMECipher } from './eme';
 import {
 	decodeBase32,
 	decodeBase64URL,
@@ -6,22 +7,152 @@ import {
 	encodeBase64URL,
 } from './encoders';
 
-function obfuscateChar(c: number, nameKey: Uint8Array): number {
-	if (c >= 0x20 && c <= 0x7e) {
-		const offset = c - 0x20;
-		const shift = nameKey[0] % 95;
-		return 0x20 + ((offset + shift) % 95);
+const OBFUSCATE_QUOTE = '!';
+
+/**
+ * 1:1 implementation of Rclone's cipher.obfuscateSegment algorithm.
+ */
+export function obfuscateSegment(plaintext: string, nameKey: Uint8Array): string {
+	if (!plaintext) return '';
+
+	// Calculate initial dir value from sum of UTF-16 code units % 256
+	let dir = 0;
+	for (let i = 0; i < plaintext.length; i++) {
+		dir += plaintext.charCodeAt(i);
 	}
-	return c;
+	dir %= 256;
+
+	let result = `${dir}.`;
+
+	// Augment dir with sum of nameKey bytes
+	for (let i = 0; i < nameKey.length; i++) {
+		dir += nameKey[i];
+	}
+
+	for (let i = 0; i < plaintext.length; i++) {
+		const code = plaintext.charCodeAt(i);
+
+		if (code === OBFUSCATE_QUOTE.charCodeAt(0)) {
+			result += '!!';
+		} else if (code >= 0x30 && code <= 0x39) {
+			// '0' - '9'
+			const thisdir = (dir % 9) + 1;
+			const newCode = 0x30 + ((code - 0x30 + thisdir) % 10);
+			result += String.fromCharCode(newCode);
+		} else if (
+			(code >= 0x41 && code <= 0x5a) || // 'A' - 'Z'
+			(code >= 0x61 && code <= 0x7a) // 'a' - 'z'
+		) {
+			const thisdir = (dir % 25) + 1;
+			let pos = code - 0x41;
+			if (pos >= 26) {
+				pos -= 6;
+			}
+			pos = (pos + thisdir) % 52;
+			if (pos >= 26) {
+				pos += 6;
+			}
+			result += String.fromCharCode(0x41 + pos);
+		} else if (code >= 0xa0 && code <= 0xff) {
+			const thisdir = (dir % 95) + 1;
+			const newCode = 0xa0 + ((code - 0xa0 + thisdir) % 96);
+			result += String.fromCharCode(newCode);
+		} else if (code >= 0x100) {
+			const thisdir = (dir % 127) + 1;
+			const base = code - (code % 256);
+			const newCode = base + ((code - base + thisdir) % 256);
+			result += String.fromCharCode(newCode);
+		} else {
+			result += plaintext[i];
+		}
+	}
+
+	return result;
 }
 
-function deobfuscateChar(c: number, nameKey: Uint8Array): number {
-	if (c >= 0x20 && c <= 0x7e) {
-		const offset = c - 0x20;
-		const shift = nameKey[0] % 95;
-		return 0x20 + ((offset - shift + 95) % 95);
+/**
+ * 1:1 implementation of Rclone's cipher.deobfuscateSegment algorithm.
+ */
+export function deobfuscateSegment(ciphertext: string, nameKey: Uint8Array): string {
+	if (!ciphertext) return '';
+
+	const dotIdx = ciphertext.indexOf('.');
+	if (dotIdx === -1) {
+		throw new Error('Not an encrypted file (missing dot in obfuscated filename)');
 	}
-	return c;
+
+	const numStr = ciphertext.substring(0, dotIdx);
+	const after = ciphertext.substring(dotIdx + 1);
+
+	if (numStr === '!') {
+		return after;
+	}
+
+	let dir = parseInt(numStr, 10);
+	if (isNaN(dir)) {
+		throw new Error('Not an encrypted file (invalid rotation prefix)');
+	}
+
+	for (let i = 0; i < nameKey.length; i++) {
+		dir += nameKey[i];
+	}
+
+	let result = '';
+	let inQuote = false;
+
+	for (let i = 0; i < after.length; i++) {
+		const code = after.charCodeAt(i);
+
+		if (inQuote) {
+			result += after[i];
+			inQuote = false;
+		} else if (code === OBFUSCATE_QUOTE.charCodeAt(0)) {
+			inQuote = true;
+		} else if (code >= 0x30 && code <= 0x39) {
+			const thisdir = (dir % 9) + 1;
+			let newCode = code - thisdir;
+			if (newCode < 0x30) {
+				newCode += 10;
+			}
+			result += String.fromCharCode(newCode);
+		} else if (
+			(code >= 0x41 && code <= 0x5a) ||
+			(code >= 0x61 && code <= 0x7a)
+		) {
+			const thisdir = (dir % 25) + 1;
+			let pos = code - 0x41;
+			if (pos >= 26) {
+				pos -= 6;
+			}
+			pos -= thisdir;
+			if (pos < 0) {
+				pos += 52;
+			}
+			if (pos >= 26) {
+				pos += 6;
+			}
+			result += String.fromCharCode(0x41 + pos);
+		} else if (code >= 0xa0 && code <= 0xff) {
+			const thisdir = (dir % 95) + 1;
+			let newCode = code - thisdir;
+			if (newCode < 0xa0) {
+				newCode += 96;
+			}
+			result += String.fromCharCode(newCode);
+		} else if (code >= 0x100) {
+			const thisdir = (dir % 127) + 1;
+			const base = code - (code % 256);
+			let newCode = code - thisdir;
+			if (newCode < base) {
+				newCode += 256;
+			}
+			result += String.fromCharCode(newCode);
+		} else {
+			result += after[i];
+		}
+	}
+
+	return result;
 }
 
 /**
@@ -29,7 +160,7 @@ function deobfuscateChar(c: number, nameKey: Uint8Array): number {
  */
 export function encryptFilename(
 	filename: string,
-	nameKey: Uint8Array,
+	keys: CryptoKeys,
 	mode: FilenameEncryptionMode,
 	encoding: FilenameEncoding
 ): string {
@@ -38,21 +169,20 @@ export function encryptFilename(
 	}
 
 	if (mode === 'obfuscate') {
-		const bytes = new TextEncoder().encode(filename);
-		const obfuscated = new Uint8Array(bytes.length);
-		for (let i = 0; i < bytes.length; i++) {
-			obfuscated[i] = obfuscateChar(bytes[i], nameKey);
-		}
-		return encodeFilenameBytes(obfuscated, encoding);
+		return obfuscateSegment(filename, keys.nameKey);
 	}
 
-	// Default fallback to obfuscate for filename privacy
-	const bytes = new TextEncoder().encode(filename);
-	const obfuscated = new Uint8Array(bytes.length);
-	for (let i = 0; i < bytes.length; i++) {
-		obfuscated[i] = obfuscateChar(bytes[i], nameKey);
-	}
-	return encodeFilenameBytes(obfuscated, encoding);
+	// Standard EME mode (AES-256-EME with PKCS7 padding matching Rclone)
+	const rawBytes = new TextEncoder().encode(filename);
+	const padLen = 16 - (rawBytes.length % 16);
+	const padded = new Uint8Array(rawBytes.length + padLen);
+	padded.set(rawBytes);
+	padded.fill(padLen, rawBytes.length);
+
+	const eme = new EMECipher(keys.nameKey);
+	const encrypted = eme.encrypt(keys.nameTweak, padded);
+
+	return encodeFilenameBytes(encrypted, encoding);
 }
 
 /**
@@ -60,7 +190,7 @@ export function encryptFilename(
  */
 export function decryptFilename(
 	encryptedName: string,
-	nameKey: Uint8Array,
+	keys: CryptoKeys,
 	mode: FilenameEncryptionMode,
 	encoding: FilenameEncoding
 ): string {
@@ -68,21 +198,22 @@ export function decryptFilename(
 		return encryptedName;
 	}
 
-	const bytes = decodeFilenameBytes(encryptedName, encoding);
-
 	if (mode === 'obfuscate') {
-		const deobfuscated = new Uint8Array(bytes.length);
-		for (let i = 0; i < bytes.length; i++) {
-			deobfuscated[i] = deobfuscateChar(bytes[i], nameKey);
-		}
-		return new TextDecoder().decode(deobfuscated);
+		return deobfuscateSegment(encryptedName, keys.nameKey);
 	}
 
-	const deobfuscated = new Uint8Array(bytes.length);
-	for (let i = 0; i < bytes.length; i++) {
-		deobfuscated[i] = deobfuscateChar(bytes[i], nameKey);
+	// Standard EME mode
+	const bytes = decodeFilenameBytes(encryptedName, encoding);
+	const eme = new EMECipher(keys.nameKey);
+	const decryptedPadded = eme.decrypt(keys.nameTweak, bytes);
+
+	// Strip PKCS7 padding
+	const padLen = decryptedPadded[decryptedPadded.length - 1];
+	if (padLen < 1 || padLen > 16 || padLen > decryptedPadded.length) {
+		throw new Error('Invalid EME padding');
 	}
-	return new TextDecoder().decode(deobfuscated);
+	const unpadded = decryptedPadded.subarray(0, decryptedPadded.length - padLen);
+	return new TextDecoder('utf-8', { fatal: true }).decode(unpadded);
 }
 
 function encodeFilenameBytes(

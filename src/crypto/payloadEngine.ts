@@ -12,14 +12,16 @@ export const BLOCK_HEADER_SIZE = 16; // 16 bytes Poly1305 MAC tag
 export const ENCRYPTED_BLOCK_SIZE = FILE_BLOCK_SIZE + BLOCK_HEADER_SIZE; // 65,552 bytes
 
 /**
- * Increment 24-byte XSalsa20 nonce in place (64-bit little endian in the last 8 bytes).
+ * Increment 24-byte XSalsa20 nonce matching official Rclone cipher.nonce.increment (starts at byte index 0).
  */
 export function incrementNonce(nonce: Uint8Array): Uint8Array {
 	const result = new Uint8Array(nonce);
-	for (let i = 16; i < 24; i++) {
-		result[i] = (result[i] + 1) & 0xff;
-		if (result[i] !== 0) {
-			break; // No overflow carry needed
+	for (let i = 0; i < 24; i++) {
+		const digit = result[i];
+		const newDigit = (digit + 1) & 0xff;
+		result[i] = newDigit;
+		if (newDigit !== 0) {
+			break; // Exit loop if no overflow carry
 		}
 	}
 	return result;

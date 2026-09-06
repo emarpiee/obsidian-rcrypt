@@ -1,4 +1,5 @@
-const BASE32_ALPHABET = '0123456789abcdefghijklmnopqrstuv';
+// Official Rclone Crypt Base32 encoding (Extended Hex Alphabet "0123456789abcdefghijklmnopqrstuv" unpadded)
+const BASE32_HEX_ALPHABET = '0123456789abcdefghijklmnopqrstuv';
 
 export function encodeBase32(data: Uint8Array): string {
 	let bits = 0;
@@ -9,28 +10,28 @@ export function encodeBase32(data: Uint8Array): string {
 		value = (value << 8) | data[i];
 		bits += 8;
 		while (bits >= 5) {
-			output += BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
+			output += BASE32_HEX_ALPHABET[(value >>> (bits - 5)) & 31];
 			bits -= 5;
 		}
 	}
 
 	if (bits > 0) {
-		output += BASE32_ALPHABET[(value << (5 - bits)) & 31];
+		output += BASE32_HEX_ALPHABET[(value << (5 - bits)) & 31];
 	}
 
 	return output;
 }
 
 export function decodeBase32(str: string): Uint8Array {
-	const cleanStr = str.toLowerCase();
+	const cleanStr = str.toLowerCase().replace(/=+$/, '');
 	let bits = 0;
 	let value = 0;
 	const bytes: number[] = [];
 
 	for (let i = 0; i < cleanStr.length; i++) {
-		const idx = BASE32_ALPHABET.indexOf(cleanStr[i]);
+		const idx = BASE32_HEX_ALPHABET.indexOf(cleanStr[i]);
 		if (idx === -1) {
-			continue;
+			throw new Error(`Invalid Base32 character: "${cleanStr[i]}"`);
 		}
 		value = (value << 5) | idx;
 		bits += 5;
@@ -42,6 +43,7 @@ export function decodeBase32(str: string): Uint8Array {
 
 	return new Uint8Array(bytes);
 }
+
 
 export function encodeBase64URL(data: Uint8Array): string {
 	let binary = '';

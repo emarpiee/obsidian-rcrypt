@@ -1,6 +1,6 @@
 import { Menu, Notice, TAbstractFile, TFile, TFolder } from 'obsidian';
 import RCryptPlugin from '../main';
-import { DecryptedPreviewModal, PassphraseModal } from '../ui/modals';
+import { PassphraseModal } from '../ui/modals';
 
 export function registerContextMenu(plugin: RCryptPlugin): void {
 	plugin.registerEvent(
@@ -19,26 +19,13 @@ export function registerContextMenu(plugin: RCryptPlugin): void {
 function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]): void {
 	if (!files || files.length === 0) return;
 
-	const isSingleFile = files.length === 1 && files[0] instanceof TFile;
-	const singleFile = files.length === 1 && files[0] instanceof TFile ? files[0] : null;
-	const isEncrypted = singleFile
-		? singleFile.name.endsWith(plugin.settings.encryptedExtension)
-		: false;
+	const isFolder = files.length === 1 && files[0] instanceof TFolder;
+	const count = files.length;
 
-	if (isSingleFile && singleFile && isEncrypted) {
-		menu.addItem((item) => {
-			item
-				.setTitle('Safe view encrypted file (in-memory)')
-				.setIcon('eye')
-				.onClick(() => {
-					void previewFile(plugin, singleFile);
-				});
-		});
-	}
-
+	// Encrypt options
 	menu.addItem((item) => {
 		item
-			.setTitle(files.length > 1 ? `Encrypt ${files.length} items (rclone crypt)` : 'Encrypt (rclone crypt)')
+			.setTitle(count > 1 ? `Encrypt ${count} items` : (isFolder ? 'Encrypt folder' : 'Encrypt file'))
 			.setIcon('lock')
 			.onClick(() => {
 				void processItems(plugin, files, 'encrypt', false);
@@ -54,9 +41,12 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 			});
 	});
 
+	menu.addSeparator();
+
+	// Decrypt options
 	menu.addItem((item) => {
 		item
-			.setTitle(files.length > 1 ? `Decrypt ${files.length} items (rclone crypt)` : 'Decrypt (rclone crypt)')
+			.setTitle(count > 1 ? `Decrypt ${count} items` : (isFolder ? 'Decrypt folder' : 'Decrypt file'))
 			.setIcon('unlock')
 			.onClick(() => {
 				void processItems(plugin, files, 'decrypt', false);
@@ -73,38 +63,14 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 	});
 }
 
-async function previewFile(plugin: RCryptPlugin, file: TFile): Promise<void> {
-	try {
-		const raw = await plugin.app.vault.readBinary(file);
-		const bytes = new Uint8Array(raw);
-
-		const pass = plugin.settings.passphrase;
-		const salt = plugin.settings.salt;
-
-		if (!pass) {
-			new PassphraseModal(
-				plugin.app,
-				'Enter passphrase to preview',
-				salt,
-				(res) => {
-					try {
-						const decrypted = plugin.engine.decryptFile(bytes, res.passphrase, res.salt);
-						new DecryptedPreviewModal(plugin.app, file.name, decrypted).open();
-						return true;
-					} catch {
-						return false;
-					}
-				}
-			).open();
-			return;
-		}
-
-		const decrypted = plugin.engine.decryptFile(bytes, pass, salt);
-		new DecryptedPreviewModal(plugin.app, file.name, decrypted).open();
-	} catch (err: unknown) {
-		const msg = err instanceof Error ? err.message : 'Unknown preview error';
-		new Notice(`Failed to preview encrypted file: ${msg}`);
+function isEncryptedItem(plugin: RCryptPlugin, file: TAbstractFile): boolean {
+	if (file instanceof TFile) {
+		return file.name.endsWith(plugin.settings.encryptedExtension);
 	}
+	if (file instanceof TFolder) {
+		return file.children.some((child) => isEncryptedItem(plugin, child));
+	}
+	return false;
 }
 
 async function processItems(
@@ -156,17 +122,21 @@ async function executeBatchAction(
 		}
 	}
 
+	let firstErrorMessage = '';
+
 	for (const file of allFiles) {
 		try {
 			if (action === 'encrypt') {
-				if (file.name.endsWith(plugin.settings.encryptedExtension)) {
+				const isAlreadyEncrypted = isEncryptedFilename(file.name, plugin.settings.encryptedExtension, plugin.settings.filenameEncryptionMode);
+				if (isAlreadyEncrypted) {
 					continue;
 				}
 				const content = new Uint8Array(await plugin.app.vault.readBinary(file));
 				const encryptedBytes = plugin.engine.encryptFile(content, passphrase, salt);
 
 				const encName = plugin.engine.encryptName(file.name, passphrase, salt);
-				const targetPath = `${file.parent ? file.parent.path + '/' : ''}${encName}${plugin.settings.encryptedExtension}`;
+				const suffix = getEffectiveSuffix(plugin.settings.encryptedExtension, plugin.settings.filenameEncryptionMode);
+				const targetPath = `${file.parent ? file.parent.path + '/' : ''}${encName}${suffix}`;
 
 				await plugin.app.vault.createBinary(
 					targetPath,
@@ -178,26 +148,39 @@ async function executeBatchAction(
 				}
 				successCount++;
 			} else {
+				// Decrypt action
+				const suffix = getEffectiveSuffix(plugin.settings.encryptedExtension, plugin.settings.filenameEncryptionMode);
+				let rawEncName = file.name;
+
+				if (suffix && file.name.endsWith(suffix)) {
+					rawEncName = file.name.slice(0, -suffix.length);
+				}
+
+				let decName = rawEncName;
+
+				// 1. Validate filename decryption FIRST if filename encryption is enabled
+				if (plugin.settings.filenameEncryptionMode !== 'off') {
+					try {
+						decName = plugin.engine.decryptName(rawEncName, passphrase, salt);
+					} catch {
+						throw new Error(
+							'Encoding mismatch or incorrect passphrase/salt.'
+						);
+					}
+				}
+
+				// 2. Decrypt file payload
 				const content = new Uint8Array(await plugin.app.vault.readBinary(file));
 				const decryptedBytes = plugin.engine.decryptFile(content, passphrase, salt);
 
-				let decName = file.name;
-				if (decName.endsWith(plugin.settings.encryptedExtension)) {
-					decName = decName.slice(0, -plugin.settings.encryptedExtension.length);
-				}
-
-				try {
-					decName = plugin.engine.decryptName(decName, passphrase, salt);
-				} catch {
-					// Fallback to decName
-				}
-
+				// 3. Save decrypted file
 				const targetPath = `${file.parent ? file.parent.path + '/' : ''}${decName}`;
 				await plugin.app.vault.createBinary(
 					targetPath,
 					toArrayBuffer(decryptedBytes)
 				);
 
+				// 4. Trash source encrypted file only after successful decryption & save
 				if (plugin.settings.autoDeleteSource) {
 					await plugin.app.fileManager.trashFile(file);
 				}
@@ -205,8 +188,9 @@ async function executeBatchAction(
 			}
 		} catch (err: unknown) {
 			failCount++;
-			const msg = err instanceof Error ? err.message : 'Unknown processing error';
-			console.error(`Error processing file: ${msg}`);
+			if (!firstErrorMessage) {
+				firstErrorMessage = err instanceof Error ? err.message : 'Unknown error';
+			}
 		}
 	}
 
@@ -238,9 +222,19 @@ async function executeBatchAction(
 	}
 
 	if (successCount > 0 || failCount > 0) {
-		new Notice(
-			`${action === 'encrypt' ? 'Encryption' : 'Decryption'} complete: ${successCount} succeeded, ${failCount} failed.`
-		);
+		if (failCount > 0 && successCount === 0) {
+			new Notice(
+				`❌ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} failed (${failCount} item${failCount > 1 ? 's' : ''}): ${firstErrorMessage}`
+			);
+		} else if (failCount > 0) {
+			new Notice(
+				`⚠️ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} finished with errors: ${successCount} succeeded, ${failCount} failed. (${firstErrorMessage})`
+			);
+		} else {
+			new Notice(
+				`✅ ${action === 'encrypt' ? 'Encryption' : 'Decryption'} completed: ${successCount} item${successCount > 1 ? 's' : ''} processed.`
+			);
+		}
 	}
 
 	return { successCount, failCount };
@@ -258,4 +252,22 @@ function collectFolderFiles(folder: TFolder, out: TFile[]): void {
 			collectFolderFiles(child, out);
 		}
 	}
+}
+
+function getEffectiveSuffix(configuredSuffix: string, mode: string): string {
+	if (configuredSuffix && configuredSuffix.toLowerCase() === 'none') {
+		return '';
+	}
+	if (mode !== 'off' && (!configuredSuffix || configuredSuffix === '.bin')) {
+		return '';
+	}
+	return configuredSuffix || '.rcrypt';
+}
+
+function isEncryptedFilename(filename: string, configuredSuffix: string, mode: string): boolean {
+	const suffix = getEffectiveSuffix(configuredSuffix, mode);
+	if (suffix) {
+		return filename.endsWith(suffix);
+	}
+	return false;
 }

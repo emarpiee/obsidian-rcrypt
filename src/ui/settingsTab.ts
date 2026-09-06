@@ -67,6 +67,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.filenameEncryptionMode = value as FilenameEncryptionMode;
 						await this.plugin.saveSettings();
+						updateSuffixVisibility();
 					});
 			});
 
@@ -84,18 +85,30 @@ export class RCryptSettingTab extends PluginSettingTab {
 					});
 			});
 
-		new Setting(containerEl)
+		const suffixSetting = new Setting(containerEl)
 			.setName('Encrypted file suffix')
-			.setDesc('File extension appended to encrypted files')
+			.setDesc('Extension appended when filename encryption is "Off" (corresponds to --crypt-suffix in rclone).')
 			.addText((text) => {
 				text
-					.setPlaceholder('.rcrypt')
+					.setPlaceholder('.bin')
 					.setValue(this.plugin.settings.encryptedExtension)
 					.onChange(async (value) => {
 						this.plugin.settings.encryptedExtension = value || '.rcrypt';
 						await this.plugin.saveSettings();
 					});
 			});
+
+		// Official Rclone approach: Suffix only applies when filename_encryption is "off"
+		const updateSuffixVisibility = () => {
+			if (this.plugin.settings.filenameEncryptionMode === 'off') {
+				suffixSetting.settingEl.show();
+			} else {
+				suffixSetting.settingEl.hide();
+			}
+		};
+
+		// Initial check
+		updateSuffixVisibility();
 
 		new Setting(containerEl)
 			.setName('Encrypt selected folders')

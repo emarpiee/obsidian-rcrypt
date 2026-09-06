@@ -10,10 +10,12 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		const keys = deriveRcloneKeys('mysecretpassword', 'mysalt');
 		expect(keys.dataKey.length).toBe(32);
 		expect(keys.nameKey.length).toBe(32);
+		expect(keys.nameTweak.length).toBe(16);
 
 		const keys2 = deriveRcloneKeys('mysecretpassword', 'mysalt');
 		expect(keys.dataKey).toEqual(keys2.dataKey);
 		expect(keys.nameKey).toEqual(keys2.nameKey);
+		expect(keys.nameTweak).toEqual(keys2.nameTweak);
 	});
 
 	it('should obscure and reveal passwords matching rclone obscure standard', () => {
@@ -61,13 +63,29 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		const originalFilename = 'My Secret Journal Note.md';
 
 		// Base32
-		const encB32 = encryptFilename(originalFilename, keys.nameKey, 'obfuscate', 'base32');
-		const decB32 = decryptFilename(encB32, keys.nameKey, 'obfuscate', 'base32');
+		const encB32 = encryptFilename(originalFilename, keys, 'obfuscate', 'base32');
+		const decB32 = decryptFilename(encB32, keys, 'obfuscate', 'base32');
 		expect(decB32).toBe(originalFilename);
 
 		// Base64
-		const encB64 = encryptFilename(originalFilename, keys.nameKey, 'obfuscate', 'base64');
-		const decB64 = decryptFilename(encB64, keys.nameKey, 'obfuscate', 'base64');
+		const encB64 = encryptFilename(originalFilename, keys, 'obfuscate', 'base64');
+		const decB64 = decryptFilename(encB64, keys, 'obfuscate', 'base64');
 		expect(decB64).toBe(originalFilename);
 	});
+
+	it('should encrypt and decrypt filenames with standard EME mode', () => {
+		const keys = deriveRcloneKeys('mysecretpassword', 'mysalt');
+		const originalFilename = 'My Secret Journal Note.md';
+
+		// Standard EME Base32
+		const encEME32 = encryptFilename(originalFilename, keys, 'standard', 'base32');
+		const decEME32 = decryptFilename(encEME32, keys, 'standard', 'base32');
+		expect(decEME32).toBe(originalFilename);
+
+		// Standard EME Base64
+		const encEME64 = encryptFilename(originalFilename, keys, 'standard', 'base64');
+		const decEME64 = decryptFilename(encEME64, keys, 'standard', 'base64');
+		expect(decEME64).toBe(originalFilename);
+	});
+
 });

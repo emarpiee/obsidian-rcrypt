@@ -24,10 +24,10 @@ export class RCryptEngine {
 	}
 
 	public getKeys(customPassphrase?: string, customSalt?: string): CryptoKeys {
-		if (customPassphrase) {
+		if (customPassphrase !== undefined || customSalt !== undefined) {
 			return deriveRcloneKeys(
-				customPassphrase,
-				customSalt || this.settings.salt
+				customPassphrase !== undefined ? customPassphrase : (this.settings.passphrase || ''),
+				customSalt !== undefined ? customSalt : (this.settings.salt || '')
 			);
 		}
 		if (!this.keys) {
@@ -73,7 +73,7 @@ export class RCryptEngine {
 		const keys = this.getKeys(customPassphrase, customSalt);
 		return encryptFilename(
 			filename,
-			keys.nameKey,
+			keys,
 			this.settings.filenameEncryptionMode,
 			this.settings.filenameEncoding
 		);
@@ -90,9 +90,10 @@ export class RCryptEngine {
 		const keys = this.getKeys(customPassphrase, customSalt);
 		return decryptFilename(
 			encryptedName,
-			keys.nameKey,
+			keys,
 			this.settings.filenameEncryptionMode,
 			this.settings.filenameEncoding
 		);
 	}
+
 }

@@ -26,4 +26,6 @@ export const DEFAULT_SETTINGS: RCryptSettings = {
 export interface CryptoKeys {
 	dataKey: Uint8Array; // 32 bytes
 	nameKey: Uint8Array; // 32 bytes
+	nameTweak: Uint8Array; // 16 bytes
 }
+

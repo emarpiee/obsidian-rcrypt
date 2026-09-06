@@ -1,9 +1,10 @@
 {
-  "passphrase": "",
-  "salt": "",
+  "passphrase": "ylVcWZzQo1NNA5nO8x4cIMHryL34JUyN49vza5O2",
+  "salt": "4TqZlakhApYjRhtsLQwCegcnOmUs",
   "filenameEncryptionMode": "standard",
   "filenameEncoding": "base32",
   "encryptedExtension": ".rcrypt",
   "autoDeleteSource": true,
-  "rememberSessionPassphrase": true
+  "rememberSessionPassphrase": true,
+  "encryptFolderNames": true
 }
