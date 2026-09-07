@@ -235,9 +235,9 @@ export class RCryptSettingTab extends PluginSettingTab {
 		// --- FOLDER PROFILE MAPPINGS SECTION ---
 		new Setting(containerEl)
 			.setName('Folder profile mappings')
-			.setDesc('Assign specific crypt profiles to designated folder paths (e.g. "Private/Journal"). Files inside will automatically use the mapped profile.')
+			.setDesc('Assign specific crypt profiles to designated folder paths (e.g. "private/journal"). Files inside will automatically use the mapped profile.')
 			.addButton((btn) => {
-				btn.setButtonText('+ Add folder mapping').onClick(async () => {
+				btn.setButtonText('+ add folder mapping').onClick(async () => {
 					this.plugin.settings.folderMappings.push({
 						folderPath: '',
 						profileId: activeProfile.id,
@@ -252,7 +252,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 			setting.addText((text) => {
 				text
-					.setPlaceholder('Folder path (e.g. Private/Journal)')
+					.setPlaceholder('Folder path (e.g. Private/journal)')
 					.setValue(mapping.folderPath)
 					.onChange(async (val) => {
 						mapping.folderPath = val.trim();

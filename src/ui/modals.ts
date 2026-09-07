@@ -890,7 +890,7 @@ export class ProgressModal extends Modal {
 				this.isCancelled = true;
 				btn.setDisabled(true);
 				btn.setButtonText('Cancelling...');
-				this.statusEl.setText('⚠️ Cancelling operation...');
+				this.statusEl.setText('⚠️ cancelling operation...');
 			});
 		});
 	}
