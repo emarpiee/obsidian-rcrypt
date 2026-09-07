@@ -1,40 +1,52 @@
 import { App, FuzzySuggestModal, Modal, Notice, Setting, TAbstractFile, TFile, TFolder, setIcon } from 'obsidian';
 import { processItems } from '../contextMenu/registerMenu';
 import { getText } from '../i18n/i18n';
-import type { CryptProfile } from '../types';
+import type { CryptProfile, FilenameEncoding, FilenameEncryptionMode } from '../types';
 import type RCryptPlugin from '../main';
 
 export interface PassphrasePromptResult {
 	profileId: string;
 	passphrase: string;
 	salt: string;
+	customFilenameEncryptionMode?: FilenameEncryptionMode;
+	customFilenameEncoding?: FilenameEncoding;
+	customEncryptedExtension?: string;
 }
 
 export class PassphraseModal extends Modal {
 	private selectedProfileId: string;
 	private passphrase = '';
 	private salt = '';
+	private customMode: FilenameEncryptionMode = 'standard';
+	private customEncoding: FilenameEncoding = 'base32';
+	private customSuffix = '.rcrypt';
 	private profiles: CryptProfile[];
 	private onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean;
 	private modalTitle: string;
+	private items?: TAbstractFile[];
 
 	constructor(
 		app: App,
 		modalTitle: string,
 		profiles: CryptProfile[],
 		initialProfileId: string,
-		onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean
+		onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean,
+		items?: TAbstractFile[]
 	) {
 		super(app);
 		this.modalTitle = modalTitle;
 		this.profiles = profiles;
 		this.selectedProfileId = initialProfileId;
 		this.onSubmit = onSubmit;
+		this.items = items;
 
-		const profile = profiles.find((p) => p.id === initialProfileId) || profiles[0];
+		const profile = profiles.find((p) => p.id === initialProfileId);
 		if (profile) {
 			this.passphrase = profile.passphrase || '';
 			this.salt = profile.salt || '';
+			this.customMode = profile.filenameEncryptionMode;
+			this.customEncoding = profile.filenameEncoding;
+			this.customSuffix = profile.encryptedExtension;
 		}
 	}
 
@@ -50,28 +62,37 @@ export class PassphraseModal extends Modal {
 		let passInputEl: HTMLInputElement | undefined;
 		let saltInputEl: HTMLInputElement | undefined;
 
-		if (this.profiles.length > 0) {
-			new Setting(contentEl)
-				.setName(t.profileSettingTitle || 'Crypt Profile')
-				.setDesc(t.profileSettingDesc || 'Select profile credentials for decryption')
-				.addDropdown((dropdown) => {
-					for (const p of this.profiles) {
-						dropdown.addOption(p.id, p.name);
+		new Setting(contentEl)
+			.setName(t.profileSettingTitle || 'Crypt Profile')
+			.setDesc(t.profileSettingDesc || 'Select profile credentials or custom parameters')
+			.addDropdown((dropdown) => {
+				for (const p of this.profiles) {
+					dropdown.addOption(p.id, p.name);
+				}
+				dropdown.addOption('custom', 'Custom...');
+				dropdown.setValue(this.selectedProfileId);
+				dropdown.onChange((val) => {
+					this.selectedProfileId = val;
+					const selProf = this.profiles.find((p) => p.id === val);
+					if (selProf) {
+						this.passphrase = selProf.passphrase || '';
+						this.salt = selProf.salt || '';
+						this.customMode = selProf.filenameEncryptionMode;
+						this.customEncoding = selProf.filenameEncoding;
+						this.customSuffix = selProf.encryptedExtension;
+					} else if (val === 'custom') {
+						this.passphrase = '';
+						this.salt = '';
+						this.customMode = 'standard';
+						this.customEncoding = 'base32';
+						this.customSuffix = '.rcrypt';
 					}
-					dropdown.setValue(this.selectedProfileId);
-					dropdown.onChange((val) => {
-						this.selectedProfileId = val;
-						const selProf = this.profiles.find((p) => p.id === val);
-						if (selProf) {
-							this.passphrase = selProf.passphrase || '';
-							this.salt = selProf.salt || '';
-							if (passInputEl) passInputEl.value = this.passphrase;
-							if (saltInputEl) saltInputEl.value = this.salt;
-						}
-						errorDiv.setCssProps({ display: 'none' });
-					});
+					if (passInputEl) passInputEl.value = this.passphrase;
+					if (saltInputEl) saltInputEl.value = this.salt;
+					renderCustomControls();
+					errorDiv.setCssProps({ display: 'none' });
 				});
-		}
+			});
 
 		// Passphrase Input Setting with Toggle Password Visibility button
 		const passSetting = new Setting(contentEl)
@@ -89,7 +110,6 @@ export class PassphraseModal extends Modal {
 				text.inputEl.focus();
 			});
 
-		// Add show/hide password toggle button with Obsidian Lucide icon
 		passSetting.addButton((btn) => {
 			btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
 				if (passInputEl) {
@@ -104,7 +124,7 @@ export class PassphraseModal extends Modal {
 			});
 		});
 
-		// Salt Input Setting (Masked as password) with Toggle Visibility button
+		// Salt Input Setting
 		const saltSetting = new Setting(contentEl)
 			.setName(t.modalSaltName)
 			.setDesc(t.modalSaltDesc)
@@ -133,6 +153,90 @@ export class PassphraseModal extends Modal {
 			});
 		});
 
+		const customContainer = contentEl.createDiv({ cls: 'rcrypt-custom-config-container' });
+
+		const renderCustomControls = (): void => {
+			customContainer.empty();
+			if (this.selectedProfileId !== 'custom') return;
+
+			let encodingSetting: Setting | undefined;
+			let suffixSetting: Setting | undefined;
+
+			const updateModeVisibility = (): void => {
+				const isOff = this.customMode === 'off';
+				if (encodingSetting !== undefined) {
+					encodingSetting.settingEl.style.display = isOff ? 'none' : '';
+				}
+				if (suffixSetting !== undefined) {
+					// Show suffix textbox whenever mode is OFF, or when custom mode is used (for decrypting files created with custom suffix or OFF mode)
+					suffixSetting.settingEl.style.display = isOff ? '' : 'none';
+				}
+			};
+
+			new Setting(customContainer)
+				.setName(t.filenameEncryptionModeName)
+				.setDesc(t.filenameEncryptionModeDesc)
+				.addDropdown((d) => {
+					d.addOption('standard', t.modeStandard);
+					d.addOption('obfuscate', t.modeObfuscate);
+					d.addOption('off', t.modeOff);
+					d.setValue(this.customMode);
+					d.onChange((val) => {
+						this.customMode = val as FilenameEncryptionMode;
+						updateModeVisibility();
+					});
+				});
+
+			encodingSetting = new Setting(customContainer)
+				.setName(t.filenameEncodingName)
+				.setDesc(t.filenameEncodingDesc)
+				.addDropdown((d) => {
+					d.addOption('base32', t.encodingBase32);
+					d.addOption('base64', t.encodingBase64);
+					d.setValue(this.customEncoding);
+					d.onChange((val) => {
+						this.customEncoding = val as FilenameEncoding;
+					});
+				});
+
+			suffixSetting = new Setting(customContainer)
+				.setName(t.encryptedSuffixName)
+				.setDesc(t.encryptedSuffixDesc)
+				.addText((text) => {
+					text.setValue(this.customSuffix);
+					text.setPlaceholder('.rcrypt');
+					text.onChange((val) => {
+						this.customSuffix = val;
+					});
+				});
+
+			updateModeVisibility();
+		};
+
+		renderCustomControls();
+
+		if (this.items && this.items.length > 0) {
+			const { treeText, totalLines } = generateTreeText(this.items);
+			const itemArea = contentEl.createEl('textarea', {
+				cls: 'rcrypt-items-textarea',
+				text: treeText,
+			});
+			itemArea.readOnly = true;
+			itemArea.rows = Math.min(Math.max(totalLines, 2), 10);
+			itemArea.setCssProps({
+				width: '100%',
+				resize: 'vertical',
+				fontFamily: 'var(--font-monospace)',
+				fontSize: '12px',
+				lineHeight: '1.4',
+				whiteSpace: 'pre',
+				marginTop: '10px',
+				marginBottom: '15px',
+				padding: '8px',
+				borderRadius: '4px',
+			});
+		}
+
 		new Setting(contentEl).addButton((btn) => {
 			btn
 				.setButtonText(t.modalConfirmBtn)
@@ -149,6 +253,9 @@ export class PassphraseModal extends Modal {
 							profileId: this.selectedProfileId,
 							passphrase: this.passphrase,
 							salt: this.salt,
+							customFilenameEncryptionMode: this.customMode,
+							customFilenameEncoding: this.customEncoding,
+							customEncryptedExtension: this.customSuffix,
 						});
 						if (success) {
 							this.close();
@@ -250,14 +357,36 @@ function generateTreeText(items: TAbstractFile[]): { treeText: string; totalFile
 
 export class ConfirmEncryptModal extends Modal {
 	private items: TAbstractFile[];
-	private profile: CryptProfile;
-	private onConfirm: () => void;
+	private profiles: CryptProfile[];
+	private selectedProfileId: string;
+	private customPassphrase = '';
+	private customSalt = '';
+	private customMode: FilenameEncryptionMode = 'standard';
+	private customEncoding: FilenameEncoding = 'base32';
+	private customSuffix = '.rcrypt';
+	private onConfirm: (profile: CryptProfile) => void;
 
-	constructor(app: App, items: TAbstractFile[], profile: CryptProfile, onConfirm: () => void) {
+	constructor(
+		app: App,
+		items: TAbstractFile[],
+		profiles: CryptProfile[],
+		initialProfileId: string,
+		onConfirm: (profile: CryptProfile) => void
+	) {
 		super(app);
 		this.items = items;
-		this.profile = profile;
+		this.profiles = profiles;
+		this.selectedProfileId = initialProfileId;
 		this.onConfirm = onConfirm;
+
+		const profile = profiles.find((p) => p.id === initialProfileId);
+		if (profile) {
+			this.customPassphrase = profile.passphrase || '';
+			this.customSalt = profile.salt || '';
+			this.customMode = profile.filenameEncryptionMode;
+			this.customEncoding = profile.filenameEncoding;
+			this.customSuffix = profile.encryptedExtension;
+		}
 	}
 
 	onOpen(): void {
@@ -268,36 +397,185 @@ export class ConfirmEncryptModal extends Modal {
 
 		const { treeText, totalFiles, totalLines } = generateTreeText(this.items);
 
-		const descText = t.confirmEncryptDesc
-			? t.confirmEncryptDesc(totalFiles, this.profile.name)
-			: `Are you sure you want to encrypt ${totalFiles} item(s) using profile "${this.profile.name}"?`;
+		const errorDiv = contentEl.createDiv({ cls: 'rcrypt-modal-error' });
+		errorDiv.setCssProps({ display: 'none', marginBottom: '10px' });
 
-		contentEl.createEl('p', { text: descText });
-
-		const modeLabel =
-			this.profile.filenameEncryptionMode === 'standard'
-				? t.modeStandard
-				: this.profile.filenameEncryptionMode === 'obfuscate'
-				? t.modeObfuscate
-				: t.modeOff;
-
-		const encodingLabel =
-			this.profile.filenameEncoding === 'base64'
-				? t.encodingBase64
-				: this.profile.filenameEncoding === 'base32768'
-				? 'Base32768'
-				: t.encodingBase32;
-
+		const descEl = contentEl.createEl('p');
 		const infoDiv = contentEl.createDiv({ cls: 'rcrypt-profile-info' });
 		infoDiv.setCssProps({
 			fontSize: '12px',
 			marginBottom: '12px',
 			color: 'var(--text-muted)',
 		});
-		infoDiv.createSpan({ text: 'Filename mode: ' });
-		infoDiv.createEl('strong', { text: modeLabel });
-		infoDiv.createSpan({ text: ' • encoding: ' });
-		infoDiv.createEl('strong', { text: encodingLabel });
+
+		const customContainer = contentEl.createDiv({ cls: 'rcrypt-custom-config-container' });
+
+		const updateProfileDisplay = (): void => {
+			customContainer.empty();
+			infoDiv.empty();
+
+			if (this.selectedProfileId === 'custom') {
+				descEl.setText(
+					`Are you sure you want to encrypt ${totalFiles} item(s) using Custom Configuration?`
+				);
+
+				let passInputEl: HTMLInputElement | undefined;
+				let saltInputEl: HTMLInputElement | undefined;
+
+				const passSetting = new Setting(customContainer)
+					.setName(t.modalPassphraseName)
+					.setDesc(t.modalPassphraseDesc)
+					.addText((text) => {
+						text.setValue(this.customPassphrase);
+						text.setPlaceholder(t.modalPassphrasePlaceholder);
+						text.inputEl.type = 'password';
+						passInputEl = text.inputEl;
+						text.onChange((val) => {
+							this.customPassphrase = val;
+							errorDiv.setCssProps({ display: 'none' });
+						});
+					});
+
+				passSetting.addButton((btn) => {
+					btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
+						if (passInputEl) {
+							if (passInputEl.type === 'password') {
+								passInputEl.type = 'text';
+								setIcon(btn.buttonEl, 'eye-off');
+							} else {
+								passInputEl.type = 'password';
+								setIcon(btn.buttonEl, 'eye');
+							}
+						}
+					});
+				});
+
+				const saltSetting = new Setting(customContainer)
+					.setName(t.modalSaltName)
+					.setDesc(t.modalSaltDesc)
+					.addText((text) => {
+						text.setValue(this.customSalt);
+						text.setPlaceholder(t.defaultSaltPlaceholder);
+						text.inputEl.type = 'password';
+						saltInputEl = text.inputEl;
+						text.onChange((val) => {
+							this.customSalt = val;
+							errorDiv.setCssProps({ display: 'none' });
+						});
+					});
+
+				saltSetting.addButton((btn) => {
+					btn.setIcon('eye').setTooltip('Show/hide salt').onClick(() => {
+						if (saltInputEl) {
+							if (saltInputEl.type === 'password') {
+								saltInputEl.type = 'text';
+								setIcon(btn.buttonEl, 'eye-off');
+							} else {
+								saltInputEl.type = 'password';
+								setIcon(btn.buttonEl, 'eye');
+							}
+						}
+					});
+				});
+
+				let encodingSetting: Setting | undefined;
+				let suffixSetting: Setting | undefined;
+
+				const updateModeVisibility = (): void => {
+					const isOff = this.customMode === 'off';
+					if (encodingSetting !== undefined) {
+						encodingSetting.settingEl.style.display = isOff ? 'none' : '';
+					}
+					if (suffixSetting !== undefined) {
+						suffixSetting.settingEl.style.display = isOff ? '' : 'none';
+					}
+				};
+
+				new Setting(customContainer)
+					.setName(t.filenameEncryptionModeName)
+					.setDesc(t.filenameEncryptionModeDesc)
+					.addDropdown((d) => {
+						d.addOption('standard', t.modeStandard);
+						d.addOption('obfuscate', t.modeObfuscate);
+						d.addOption('off', t.modeOff);
+						d.setValue(this.customMode);
+						d.onChange((val) => {
+							this.customMode = val as FilenameEncryptionMode;
+							updateModeVisibility();
+						});
+					});
+
+				encodingSetting = new Setting(customContainer)
+					.setName(t.filenameEncodingName)
+					.setDesc(t.filenameEncodingDesc)
+					.addDropdown((d) => {
+						d.addOption('base32', t.encodingBase32);
+						d.addOption('base64', t.encodingBase64);
+						d.setValue(this.customEncoding);
+						d.onChange((val) => {
+							this.customEncoding = val as FilenameEncoding;
+						});
+					});
+
+				suffixSetting = new Setting(customContainer)
+					.setName(t.encryptedSuffixName)
+					.setDesc(t.encryptedSuffixDesc)
+					.addText((text) => {
+						text.setValue(this.customSuffix);
+						text.setPlaceholder('.rcrypt');
+						text.onChange((val) => {
+							this.customSuffix = val;
+						});
+					});
+
+				updateModeVisibility();
+			} else {
+				const selectedProfile = this.profiles.find((p) => p.id === this.selectedProfileId) || this.profiles[0];
+				const descText = t.confirmEncryptDesc
+					? t.confirmEncryptDesc(totalFiles, selectedProfile.name)
+					: `Are you sure you want to encrypt ${totalFiles} item(s) using profile "${selectedProfile.name}"?`;
+				descEl.setText(descText);
+
+				const modeLabel =
+					selectedProfile.filenameEncryptionMode === 'standard'
+						? t.modeStandard
+						: selectedProfile.filenameEncryptionMode === 'obfuscate'
+						? t.modeObfuscate
+						: t.modeOff;
+
+				const encodingLabel =
+					selectedProfile.filenameEncoding === 'base64'
+						? t.encodingBase64
+						: t.encodingBase32;
+
+				const modeDiv = infoDiv.createDiv();
+				modeDiv.createSpan({ text: 'Filename mode: ' });
+				modeDiv.createEl('strong', { text: modeLabel });
+
+				const encodingDiv = infoDiv.createDiv();
+				encodingDiv.setCssProps({ marginTop: '4px' });
+				encodingDiv.createSpan({ text: 'Filename encoding: ' });
+				encodingDiv.createEl('strong', { text: encodingLabel });
+			}
+		};
+
+		new Setting(contentEl)
+			.setName(t.profileSettingTitle || 'Crypt Profile')
+			.setDesc(t.profileSettingDesc || 'Select profile for encryption')
+			.addDropdown((dropdown) => {
+				for (const p of this.profiles) {
+					dropdown.addOption(p.id, p.name);
+				}
+				dropdown.addOption('custom', 'Custom...');
+				dropdown.setValue(this.selectedProfileId);
+				dropdown.onChange((val) => {
+					this.selectedProfileId = val;
+					updateProfileDisplay();
+					errorDiv.setCssProps({ display: 'none' });
+				});
+			});
+
+		updateProfileDisplay();
 
 		const itemArea = contentEl.createEl('textarea', {
 			cls: 'rcrypt-items-textarea',
@@ -336,8 +614,30 @@ export class ConfirmEncryptModal extends Modal {
 				.setButtonText(t.confirmEncryptBtn || 'Encrypt')
 				.setWarning()
 				.onClick(() => {
-					this.close();
-					this.onConfirm();
+					if (this.selectedProfileId === 'custom') {
+						if (!this.customPassphrase) {
+							errorDiv.setText(t.modalErrPassphraseRequired || 'Passphrase is required.');
+							errorDiv.setCssProps({ display: 'block' });
+							return;
+						}
+						const customProfile: CryptProfile = {
+							id: 'custom',
+							name: 'Custom Configuration',
+							passphrase: this.customPassphrase,
+							salt: this.customSalt,
+							filenameEncryptionMode: this.customMode,
+							filenameEncoding: this.customEncoding,
+							encryptedExtension: this.customSuffix,
+							encryptFolderNames: false,
+							savePassphraseOnDisk: false,
+						};
+						this.close();
+						this.onConfirm(customProfile);
+					} else {
+						const selectedProfile = this.profiles.find((p) => p.id === this.selectedProfileId) || this.profiles[0];
+						this.close();
+						this.onConfirm(selectedProfile);
+					}
 				});
 		});
 	}

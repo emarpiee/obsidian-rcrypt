@@ -77,10 +77,19 @@ export class RCryptEngine {
 		filename: string,
 		customPassphrase?: string,
 		customSalt?: string,
-		profileId?: string
+		profileIdOrProfile?: string | CryptProfile
 	): string {
-		const profile = profileId ? this.getProfileById(profileId) || this.getActiveProfile() : this.getActiveProfile();
-		const keys = this.getKeys(customPassphrase, customSalt, profileId);
+		const profile =
+			typeof profileIdOrProfile === 'object' && profileIdOrProfile !== null
+				? profileIdOrProfile
+				: typeof profileIdOrProfile === 'string'
+				? this.getProfileById(profileIdOrProfile) || this.getActiveProfile()
+				: this.getActiveProfile();
+		const keys = this.getKeys(
+			customPassphrase,
+			customSalt,
+			typeof profileIdOrProfile === 'string' ? profileIdOrProfile : undefined
+		);
 		return encryptFilename(
 			filename,
 			keys,
@@ -96,10 +105,19 @@ export class RCryptEngine {
 		encryptedName: string,
 		customPassphrase?: string,
 		customSalt?: string,
-		profileId?: string
+		profileIdOrProfile?: string | CryptProfile
 	): string {
-		const profile = profileId ? this.getProfileById(profileId) || this.getActiveProfile() : this.getActiveProfile();
-		const keys = this.getKeys(customPassphrase, customSalt, profileId);
+		const profile =
+			typeof profileIdOrProfile === 'object' && profileIdOrProfile !== null
+				? profileIdOrProfile
+				: typeof profileIdOrProfile === 'string'
+				? this.getProfileById(profileIdOrProfile) || this.getActiveProfile()
+				: this.getActiveProfile();
+		const keys = this.getKeys(
+			customPassphrase,
+			customSalt,
+			typeof profileIdOrProfile === 'string' ? profileIdOrProfile : undefined
+		);
 		return decryptFilename(
 			encryptedName,
 			keys,

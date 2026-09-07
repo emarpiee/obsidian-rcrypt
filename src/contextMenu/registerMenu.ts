@@ -1,4 +1,4 @@
-import { Menu, Notice, TAbstractFile, TFile, TFolder } from 'obsidian';
+import { Menu, Notice, Platform, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
 import { CryptProfile, getFolderEncryptionMode } from '../types';
@@ -18,43 +18,92 @@ export function registerContextMenu(plugin: RCryptPlugin): void {
 	);
 }
 
+function isEncryptedFileSync(plugin: RCryptPlugin, file: TFile): boolean {
+	const name = file.name;
+	if (name.endsWith('.rcrypt')) return true;
+
+	for (const p of plugin.settings.profiles) {
+		const suffix = getEffectiveSuffix(p.encryptedExtension, p.filenameEncryptionMode);
+		if (suffix && name.endsWith(suffix)) return true;
+	}
+
+	if (Platform.isDesktop) {
+		try {
+			const win = window as unknown as { require?: (mod: string) => typeof import('fs') };
+			if (typeof win.require === 'function') {
+				const fsModule = win.require('fs');
+				const adapter = plugin.app.vault.adapter as { getFullPath?: (p: string) => string };
+				if (typeof adapter.getFullPath === 'function') {
+					const fullPath = adapter.getFullPath(file.path);
+					if (fullPath && fsModule.existsSync(fullPath)) {
+						const fd = fsModule.openSync(fullPath, 'r');
+						const buffer = Buffer.alloc(8);
+						const bytesRead = fsModule.readSync(fd, buffer, 0, 8, 0);
+						fsModule.closeSync(fd);
+
+						if (bytesRead >= 8) {
+							return (
+								buffer[0] === 0x52 &&
+								buffer[1] === 0x43 &&
+								buffer[2] === 0x4c &&
+								buffer[3] === 0x4f &&
+								buffer[4] === 0x4e &&
+								buffer[5] === 0x45 &&
+								buffer[6] === 0x00 &&
+								buffer[7] === 0x00
+							);
+						}
+					}
+				}
+			}
+		} catch {
+			// Ignore sync read errors
+		}
+	}
+
+	return false;
+}
+
+function hasEncryptedContent(plugin: RCryptPlugin, items: TAbstractFile[]): boolean {
+	for (const item of items) {
+		if (item instanceof TFile) {
+			if (isEncryptedFileSync(plugin, item)) return true;
+		} else if (item instanceof TFolder) {
+			const files: TFile[] = [];
+			collectFolderFiles(item, files);
+			for (const f of files) {
+				if (isEncryptedFileSync(plugin, f)) return true;
+			}
+		}
+	}
+	return false;
+}
+
 function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]): void {
 	if (!files || files.length === 0) return;
 
 	const t = getText();
 	const isFolder = files.length === 1 && files[0] instanceof TFolder;
 	const count = files.length;
-
 	const activeProfile = plugin.engine.getActiveProfile();
+	const showDecrypt = hasEncryptedContent(plugin, files);
 
-	// If there's only 1 profile, keep simple clean top-level items
-	if (plugin.settings.profiles.length === 1) {
-		menu.addItem((item) => {
-			item
-				.setTitle(
-					count > 1
-						? t.encryptItems(count)
-						: isFolder
-						? t.encryptFolder
-						: t.encryptFile
-				)
-				.setIcon('lock')
-				.onClick(() => {
-					void processItems(plugin, files, 'encrypt', false, activeProfile.id);
-				});
-		});
+	menu.addItem((item) => {
+		item
+			.setTitle(
+				count > 1
+					? t.encryptItems(count)
+					: isFolder
+					? t.encryptFolder
+					: t.encryptFile
+			)
+			.setIcon('lock')
+			.onClick(() => {
+				void processItems(plugin, files, 'encrypt', false, activeProfile.id);
+			});
+	});
 
-		menu.addItem((item) => {
-			item
-				.setTitle(t.encryptCustomPassphrase)
-				.setIcon('key')
-				.onClick(() => {
-					void processItems(plugin, files, 'encrypt', true);
-				});
-		});
-
-		menu.addSeparator();
-
+	if (showDecrypt) {
 		menu.addItem((item) => {
 			item
 				.setTitle(
@@ -69,117 +118,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 					void processItems(plugin, files, 'decrypt', false, activeProfile.id);
 				});
 		});
-
-		menu.addItem((item) => {
-			item
-				.setTitle(t.decryptCustomPassphrase)
-				.setIcon('key')
-				.onClick(() => {
-					void processItems(plugin, files, 'decrypt', true);
-				});
-		});
-
-		return;
 	}
-
-	// Multiple profiles: group into native Submenus
-	menu.addItem((item) => {
-		item
-			.setTitle(
-				count > 1
-					? t.encryptItems(count)
-					: isFolder
-					? t.encryptFolder
-					: t.encryptFile
-			)
-			.setIcon('lock');
-
-		const subMenu = item.setSubmenu();
-
-		// Active profile first
-		subMenu.addItem((subItem) => {
-			subItem
-				.setTitle(`${activeProfile.name} (Active)`)
-				.setIcon('check')
-				.onClick(() => {
-					void processItems(plugin, files, 'encrypt', false, activeProfile.id);
-				});
-		});
-
-		// Other profiles
-		for (const p of plugin.settings.profiles) {
-			if (p.id === activeProfile.id) continue;
-			subMenu.addItem((subItem) => {
-				subItem
-					.setTitle(p.name)
-					.setIcon('lock')
-					.onClick(() => {
-						void processItems(plugin, files, 'encrypt', false, p.id);
-					});
-			});
-		}
-
-		subMenu.addSeparator();
-
-		// Custom Passphrase option inside submenu
-		subMenu.addItem((subItem) => {
-			subItem
-				.setTitle(t.encryptCustomPassphrase)
-				.setIcon('key')
-				.onClick(() => {
-					void processItems(plugin, files, 'encrypt', true);
-				});
-		});
-	});
-
-	menu.addItem((item) => {
-		item
-			.setTitle(
-				count > 1
-					? t.decryptItems(count)
-					: isFolder
-					? t.decryptFolder
-					: t.decryptFile
-			)
-			.setIcon('unlock');
-
-		const subMenu = item.setSubmenu();
-
-		// Active profile first
-		subMenu.addItem((subItem) => {
-			subItem
-				.setTitle(`${activeProfile.name} (Active)`)
-				.setIcon('check')
-				.onClick(() => {
-					void processItems(plugin, files, 'decrypt', false, activeProfile.id);
-				});
-		});
-
-		// Other profiles
-		for (const p of plugin.settings.profiles) {
-			if (p.id === activeProfile.id) continue;
-			subMenu.addItem((subItem) => {
-				subItem
-					.setTitle(p.name)
-					.setIcon('unlock')
-					.onClick(() => {
-						void processItems(plugin, files, 'decrypt', false, p.id);
-					});
-			});
-		}
-
-		subMenu.addSeparator();
-
-		// Custom Passphrase option inside submenu
-		subMenu.addItem((subItem) => {
-			subItem
-				.setTitle(t.decryptCustomPassphrase)
-				.setIcon('key')
-				.onClick(() => {
-					void processItems(plugin, files, 'decrypt', true);
-				});
-		});
-	});
 }
 
 export async function processItems(
@@ -190,10 +129,12 @@ export async function processItems(
 	profileId?: string
 ): Promise<void> {
 	const t = getText();
-	const title = action === 'encrypt' ? t.modalTitleEncrypt(items.length) : t.modalTitleDecrypt(items.length);
-	const targetProfile = profileId ? plugin.engine.getProfileById(profileId) || plugin.engine.getActiveProfile() : plugin.engine.getActiveProfile();
+	const initialProfile = profileId
+		? plugin.engine.getProfileById(profileId) || plugin.engine.getActiveProfile()
+		: plugin.engine.getActiveProfile();
 
-	const executeAction = async (): Promise<void> => {
+	const executeWithProfile = async (targetProfile: CryptProfile): Promise<void> => {
+		const title = action === 'encrypt' ? t.modalTitleEncrypt(items.length) : t.modalTitleDecrypt(items.length);
 		if (useCustomPrompt || !targetProfile.passphrase) {
 			new PassphraseModal(
 				plugin.app,
@@ -201,12 +142,28 @@ export async function processItems(
 				plugin.settings.profiles,
 				targetProfile.id,
 				async (res) => {
-					const selectedProfile = plugin.engine.getProfileById(res.profileId) || targetProfile;
-					selectedProfile.passphrase = res.passphrase;
-					selectedProfile.salt = res.salt;
+					let selectedProfile: CryptProfile;
+					if (res.profileId === 'custom') {
+						selectedProfile = {
+							id: 'custom',
+							name: 'Custom Configuration',
+							passphrase: res.passphrase,
+							salt: res.salt,
+							filenameEncryptionMode: res.customFilenameEncryptionMode || 'standard',
+							filenameEncoding: res.customFilenameEncoding || 'base32',
+							encryptedExtension: res.customEncryptedExtension || '.rcrypt',
+							encryptFolderNames: false,
+							savePassphraseOnDisk: false,
+						};
+					} else {
+						selectedProfile = plugin.engine.getProfileById(res.profileId) || targetProfile;
+						selectedProfile.passphrase = res.passphrase;
+						selectedProfile.salt = res.salt;
+					}
 					const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, selectedProfile);
 					return result.successCount > 0 && result.failCount === 0;
-				}
+				},
+				items
 			).open();
 		} else {
 			await executeBatchAction(
@@ -221,11 +178,17 @@ export async function processItems(
 	};
 
 	if (action === 'encrypt') {
-		new ConfirmEncryptModal(plugin.app, items, targetProfile, () => {
-			void executeAction();
-		}).open();
+		new ConfirmEncryptModal(
+			plugin.app,
+			items,
+			plugin.settings.profiles,
+			initialProfile.id,
+			(selectedProfile) => {
+				void executeWithProfile(selectedProfile);
+			}
+		).open();
 	} else {
-		await executeAction();
+		await executeWithProfile(initialProfile);
 	}
 }
 
@@ -266,7 +229,7 @@ async function executeBatchAction(
 				const content = new Uint8Array(await plugin.app.vault.readBinary(file));
 				const encryptedBytes = plugin.engine.encryptFile(content, passphrase, salt, profile.id);
 
-				const encName = plugin.engine.encryptName(file.name, passphrase, salt, profile.id);
+				const encName = plugin.engine.encryptName(file.name, passphrase, salt, profile);
 				const suffix = getEffectiveSuffix(profile.encryptedExtension, profile.filenameEncryptionMode);
 				const targetPath = `${file.parent ? file.parent.path + '/' : ''}${encName}${suffix}`;
 
@@ -281,11 +244,26 @@ async function executeBatchAction(
 				successCount++;
 			} else {
 				// Decrypt action
-				const suffix = getEffectiveSuffix(profile.encryptedExtension, profile.filenameEncryptionMode);
 				let rawEncName = file.name;
 
-				if (suffix && file.name.endsWith(suffix)) {
-					rawEncName = file.name.slice(0, -suffix.length);
+				// In 'off' mode, strip configured/effective suffix or extension (e.g. file.md.bin -> file.md)
+				// In 'standard' or 'obfuscate' mode, the full encrypted name (e.g. '1.554.498.498.txt') is decrypted directly by the filename cipher
+				if (profile.filenameEncryptionMode === 'off') {
+					const effectiveSuffix = getEffectiveSuffix(profile.encryptedExtension, profile.filenameEncryptionMode);
+					const configuredExt = (profile.encryptedExtension || '.rcrypt').toLowerCase();
+
+					if (effectiveSuffix && file.name.endsWith(effectiveSuffix)) {
+						rawEncName = file.name.slice(0, -effectiveSuffix.length);
+					} else if (configuredExt && configuredExt !== 'none' && file.name.endsWith(configuredExt)) {
+						rawEncName = file.name.slice(0, -configuredExt.length);
+					} else if (file.name.endsWith('.rcrypt')) {
+						rawEncName = file.name.slice(0, -7);
+					} else {
+						const lastDotIdx = file.name.lastIndexOf('.');
+						if (lastDotIdx > 0) {
+							rawEncName = file.name.slice(0, lastDotIdx);
+						}
+					}
 				}
 
 				let decName = rawEncName;
@@ -296,7 +274,7 @@ async function executeBatchAction(
 				// 1. Decrypt filename if filename encryption mode is enabled ('standard' or 'obfuscate')
 				if (profile.filenameEncryptionMode !== 'off') {
 					try {
-						decName = plugin.engine.decryptName(rawEncName, passphrase, salt, profile.id);
+						decName = plugin.engine.decryptName(rawEncName, passphrase, salt, profile);
 					} catch {
 						// If filename decryption fails under standard/obfuscate mode, test if payload decrypts with plain filename
 						try {

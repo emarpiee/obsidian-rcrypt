@@ -147,13 +147,13 @@ export class RCryptSettingTab extends PluginSettingTab {
 					.setValue(activeProfile.filenameEncryptionMode)
 					.onChange(async (value: string) => {
 						activeProfile.filenameEncryptionMode = value as 'standard' | 'obfuscate' | 'off';
-						updateSuffixVisibility();
+						updateModeVisibility();
 						await this.plugin.saveSettings();
 					});
 			});
 
 		// Filename Encoding
-		new Setting(containerEl)
+		const encodingSetting = new Setting(containerEl)
 			.setName(t.filenameEncodingName)
 			.setDesc(t.filenameEncodingDesc)
 			.addDropdown((dropdown) => {
@@ -181,15 +181,13 @@ export class RCryptSettingTab extends PluginSettingTab {
 					});
 			});
 
-		const updateSuffixVisibility = (): void => {
-			if (activeProfile.filenameEncryptionMode === 'off') {
-				suffixSetting.settingEl.show();
-			} else {
-				suffixSetting.settingEl.hide();
-			}
+		const updateModeVisibility = (): void => {
+			const isOff = activeProfile.filenameEncryptionMode === 'off';
+			encodingSetting.settingEl.style.display = isOff ? 'none' : '';
+			suffixSetting.settingEl.style.display = isOff ? '' : 'none';
 		};
 
-		updateSuffixVisibility();
+		updateModeVisibility();
 
 		// Folder Name Encryption
 		new Setting(containerEl)

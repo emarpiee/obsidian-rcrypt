@@ -15,6 +15,7 @@ interface AppWithOpenWithDefaultApp extends App {
 export default class RCryptPlugin extends Plugin {
 	settings: RCryptSettings = DEFAULT_SETTINGS;
 	engine!: RCryptEngine;
+	updateDynamicCommands?: () => void;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -55,19 +56,41 @@ export default class RCryptPlugin extends Plugin {
 			},
 		});
 
+		// Function to update command display names dynamically with active profile
+		const updateDynamicCommands = (): void => {
+			const activeProfile = this.engine ? this.engine.getActiveProfile() : null;
+			const profileName = activeProfile ? activeProfile.name : 'Standard';
+
+			const suggestBase = getText().encryptSuggestCommandName || 'Encrypt specific file/folder';
+			const activeFileBase = getText().encryptActiveFileCommandName || 'Encrypt active file';
+
+			const suggestCmd = (this.app as unknown as { commands?: { commands?: Record<string, { name: string }> } }).commands?.commands?.['obsidian-rcrypt:encrypt-file-folder-suggest'];
+			if (suggestCmd) {
+				suggestCmd.name = `${suggestBase} (${profileName})`;
+			}
+
+			const activeFileCmd = (this.app as unknown as { commands?: { commands?: Record<string, { name: string }> } }).commands?.commands?.['obsidian-rcrypt:encrypt-active-file'];
+			if (activeFileCmd) {
+				activeFileCmd.name = `${activeFileBase} (${profileName})`;
+			}
+		};
+
 		// Register "Encrypt specific file/folder" suggest modal command
+		const activeProfileName = this.engine ? this.engine.getActiveProfile().name : 'Standard';
+		const suggestBaseName = getText().encryptSuggestCommandName || 'Encrypt specific file/folder';
 		this.addCommand({
 			id: 'encrypt-file-folder-suggest',
-			name: getText().encryptSuggestCommandName || 'Encrypt specific file/folder (active profile)',
+			name: `${suggestBaseName} (${activeProfileName})`,
 			callback: () => {
 				new EncryptSuggestModal(this.app, this).open();
 			},
 		});
 
 		// Register "Encrypt active file" command
+		const activeFileBaseName = getText().encryptActiveFileCommandName || 'Encrypt active file';
 		this.addCommand({
 			id: 'encrypt-active-file',
-			name: getText().encryptActiveFileCommandName || 'Encrypt active file (active profile)',
+			name: `${activeFileBaseName} (${activeProfileName})`,
 			checkCallback: (checking) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
@@ -80,6 +103,8 @@ export default class RCryptPlugin extends Plugin {
 				return false;
 			},
 		});
+
+		this.updateDynamicCommands = updateDynamicCommands;
 
 		// Intercept openWithDefaultApp so system "Open with..." modal is NEVER shown for encrypted files
 		const targetApp = this.app as AppWithOpenWithDefaultApp;
@@ -272,6 +297,9 @@ export default class RCryptPlugin extends Plugin {
 		await this.saveData(dataToSave);
 		if (this.engine) {
 			this.engine.updateSettings(this.settings);
+		}
+		if (typeof this.updateDynamicCommands === 'function') {
+			this.updateDynamicCommands();
 		}
 	}
 }

@@ -13,13 +13,15 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
 
 - **Rclone 1:1 Compatibility**: Files encrypted inside Obsidian can be mounted or extracted directly with Rclone CLI (`rclone cat`, `rclone mount`, `rclone copy`).
 - **Crypt Profile Manager**: Create and manage multiple profiles with distinct passphrases, salts, filename encryption modes, and encodings.
+- **Dynamic Command Palette Integration**: Commands dynamically format with active profile names (e.g. `Encrypt specific file/folder (Standard)`) and update automatically when active profiles change.
+- **Interactive Modals & Previews**: Live file/folder tree preview in passphrase modals, dynamic password visibility toggles, and context-sensitive profile configurations.
 - **Native Context Submenus**: Right-click notes, media, or folders to encrypt/decrypt using the active profile, a specific profile, or custom credentials.
 - **Filename Encryption Modes**:
   - **Standard** (AES-256-EME with PKCS#7 padding)
   - **Obfuscate** (Rclone character-rotation cipher)
   - **Off** (Plaintext filenames with optional file extension suffix)
-- **Automatic Fallback Handling**: Decryption gracefully handles unencrypted or already decrypted files within bulk operations.
-- **Internationalization (i18n)**: Multilingual UI support with automatic locale matching and RTL language handling.
+- **Automatic Fallback & Decoupled Decryption**: Decryption handles unencrypted/already decrypted files in bulk operations and automatically strips suffixes based on file type.
+- **Internationalization (i18n)**: Multilingual UI support across 10 languages with automatic locale matching and RTL language handling.
 
 ---
 
@@ -122,6 +124,10 @@ Every file encrypted by `obsidian-rcrypt` follows Rclone Crypt's binary structur
   - A lightweight 256-bit key-based character rotation cipher designed by Rclone to obscure filenames while preserving file length and readable extensions.
 - **Off**:
   - Filenames remain in plain unencrypted text with an optional append suffix (e.g. `.rcrypt`).
+
+> [!NOTE]
+> **Independent Content & Filename Decryption (Rclone Design Standard)**:
+> In Rclone Crypt, key derivation derives two separate keys: `dataKey` (for file payload encryption) and `nameKey` (for filename encryption). Because payload decryption relies solely on `dataKey` derived from your passphrase and salt, file contents will successfully unlock whenever the passphrase and salt are correct—even if the Filename Encryption Mode or Filename Encoding is misconfigured. In such cases, the payload content decrypts properly, but the resulting filename or extension may appear scrambled until decrypted with matching filename settings.
 
 ---
 
