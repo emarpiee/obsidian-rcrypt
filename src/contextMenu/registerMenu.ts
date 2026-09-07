@@ -115,7 +115,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 				)
 				.setIcon('unlock')
 				.onClick(() => {
-					void processItems(plugin, files, 'decrypt', false, activeProfile.id);
+					void processItems(plugin, files, 'decrypt', true, activeProfile.id);
 				});
 		});
 	}

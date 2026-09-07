@@ -381,8 +381,6 @@ export class ConfirmEncryptModal extends Modal {
 
 		const profile = profiles.find((p) => p.id === initialProfileId);
 		if (profile) {
-			this.customPassphrase = profile.passphrase || '';
-			this.customSalt = profile.salt || '';
 			this.customMode = profile.filenameEncryptionMode;
 			this.customEncoding = profile.filenameEncoding;
 			this.customSuffix = profile.encryptedExtension;
