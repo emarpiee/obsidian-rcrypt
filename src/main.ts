@@ -5,7 +5,7 @@ import { obscurePassword, revealPassword } from './crypto/obscure';
 import { RCryptEngine } from './crypto/rcryptEngine';
 import { getText } from './i18n/i18n';
 import { CryptProfile, DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
-import { EncryptSuggestModal } from './ui/modals';
+import { EncryptSuggestModal, MappedFolderSuggestModal } from './ui/modals';
 import { RCryptSettingTab } from './ui/settingsTab';
 
 interface AppWithOpenWithDefaultApp extends App {
@@ -166,6 +166,24 @@ export default class RCryptPlugin extends Plugin {
 					return true;
 				}
 				return false;
+			},
+		});
+
+		// Register "Encrypt mapped folder..." command
+		this.addCommand({
+			id: 'encrypt-mapped-folder-suggest',
+			name: 'Encrypt mapped folder...',
+			callback: () => {
+				new MappedFolderSuggestModal(this.app, this, 'encrypt').open();
+			},
+		});
+
+		// Register "Decrypt mapped folder..." command
+		this.addCommand({
+			id: 'decrypt-mapped-folder-suggest',
+			name: 'Decrypt mapped folder...',
+			callback: () => {
+				new MappedFolderSuggestModal(this.app, this, 'decrypt').open();
 			},
 		});
 

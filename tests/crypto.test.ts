@@ -4,6 +4,7 @@ import { decryptPayload, encryptPayload } from '../src/crypto/payloadEngine';
 import { decryptFilename, encryptFilename } from '../src/crypto/filenameEngine';
 import { decodeBase32, decodeBase64URL, encodeBase32, encodeBase64URL } from '../src/crypto/encoders';
 import { obscurePassword, revealPassword } from '../src/crypto/obscure';
+import { CryptProfile, DEFAULT_PROFILE } from '../src/types';
 
 describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 	it('should derive keys deterministically using scrypt', () => {
@@ -88,4 +89,14 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		expect(decEME64).toBe(originalFilename);
 	});
 
+	it('should support autoEncryptOnClose property on profile', () => {
+		const defaultProfile = { ...DEFAULT_PROFILE };
+		expect(defaultProfile.autoEncryptOnClose).toBe(false);
+
+		const profileWithAutoEncrypt: CryptProfile = {
+			...DEFAULT_PROFILE,
+			autoEncryptOnClose: true,
+		};
+		expect(profileWithAutoEncrypt.autoEncryptOnClose).toBe(true);
+	});
 });

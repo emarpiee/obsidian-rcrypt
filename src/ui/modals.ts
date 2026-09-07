@@ -375,6 +375,94 @@ export class EncryptSuggestModal extends FuzzySuggestModal<TAbstractFile> {
 	}
 }
 
+export interface MappedFolderItem {
+	folderPath: string;
+	profileId: string;
+	profileName: string;
+	folderObj?: TFolder;
+}
+
+export class MappedFolderSuggestModal extends FuzzySuggestModal<MappedFolderItem> {
+	private plugin: RCryptPlugin;
+	private action: 'encrypt' | 'decrypt';
+
+	constructor(app: App, plugin: RCryptPlugin, action: 'encrypt' | 'decrypt') {
+		super(app);
+		this.plugin = plugin;
+		this.action = action;
+		this.setPlaceholder(
+			action === 'encrypt'
+				? 'Search mapped folder to encrypt...'
+				: 'Search mapped folder to decrypt...'
+		);
+	}
+
+	getItems(): MappedFolderItem[] {
+		const mappings = this.plugin.settings.folderMappings || [];
+		const allFolders = this.plugin.app.vault.getAllLoadedFiles().filter((f): f is TFolder => f instanceof TFolder);
+
+		return mappings.map((m) => {
+			const prof = this.plugin.engine.getProfileById(m.profileId);
+			let folderObj = this.plugin.app.vault.getAbstractFileByPath(m.folderPath);
+
+			if (!(folderObj instanceof TFolder)) {
+				// If direct path lookup fails (because folder name is encrypted on disk), match against vault folders by decrypting each segment
+				const mappedPath = m.folderPath;
+				for (const vaultFolder of allFolders) {
+					if (prof && this.matchEncryptedFolderPath(vaultFolder.path, mappedPath, prof)) {
+						folderObj = vaultFolder;
+						break;
+					}
+				}
+			}
+
+			return {
+				folderPath: m.folderPath,
+				profileId: m.profileId,
+				profileName: prof ? prof.name : m.profileId,
+				folderObj: folderObj instanceof TFolder ? folderObj : undefined,
+			};
+		});
+	}
+
+	private matchEncryptedFolderPath(vaultFolderPath: string, targetPlainPath: string, profile: CryptProfile): boolean {
+		if (vaultFolderPath === targetPlainPath) return true;
+		if (!profile.passphrase || profile.filenameEncryptionMode === 'off') return false;
+
+		const vaultSegments = vaultFolderPath.split('/');
+		const plainSegments = targetPlainPath.split('/');
+		if (vaultSegments.length !== plainSegments.length) return false;
+
+		for (let i = 0; i < vaultSegments.length; i++) {
+			const encSeg = vaultSegments[i];
+			const targetSeg = plainSegments[i];
+			if (encSeg === targetSeg) continue;
+
+			try {
+				const decryptedSeg = this.plugin.engine.decryptName(encSeg, profile.passphrase, profile.salt, profile.id);
+				if (decryptedSeg !== targetSeg) return false;
+			} catch {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	getItemText(item: MappedFolderItem): string {
+		const status = item.folderObj ? '' : ' (Encrypted on disk)';
+		return `${item.folderPath} (${item.profileName})${status}`;
+	}
+
+	onChooseItem(item: MappedFolderItem, _evt: MouseEvent | KeyboardEvent): void {
+		if (item.folderObj) {
+			void processItems(this.plugin, [item.folderObj], this.action, this.action === 'decrypt', item.profileId);
+		} else {
+			this.plugin.showNotice(`⚠️ Mapped folder "${item.folderPath}" not found in vault.`);
+		}
+	}
+}
+
 function renderFolderTree(folder: TFolder, prefix = ''): string[] {
 	const lines: string[] = [];
 	const children = [...folder.children].sort((a, b) => {

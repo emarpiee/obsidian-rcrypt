@@ -130,6 +130,11 @@ export async function processItems(
 	openInNewLeaf = false
 ): Promise<void> {
 	const t = getText();
+	if (action === 'decrypt' && !hasEncryptedContent(plugin, items)) {
+		plugin.showNotice(t.noticeAlreadyDecrypted, 8000);
+		return;
+	}
+
 	const initialProfile = profileId
 		? plugin.engine.getProfileById(profileId) || plugin.engine.getProfileForPath(items[0]?.path)
 		: plugin.engine.getProfileForPath(items[0]?.path);
@@ -239,17 +244,28 @@ export async function executeBatchAction(
 		}
 	}
 
+	const filesToProcess: TFile[] = [];
+	if (action === 'decrypt') {
+		for (const file of allFiles) {
+			if (isEncryptedFileSync(plugin, file)) {
+				filesToProcess.push(file);
+			}
+		}
+	} else {
+		filesToProcess.push(...allFiles);
+	}
+
 	let firstErrorMessage = '';
 	const filesToDeleteOnSuccess: TFile[] = [];
 
 	let progressModal: ProgressModal | undefined;
-	if (allFiles.length >= 1) {
-		progressModal = new ProgressModal(plugin.app, action, allFiles.length);
+	if (filesToProcess.length >= 1) {
+		progressModal = new ProgressModal(plugin.app, action, filesToProcess.length);
 		progressModal.open();
 	}
 
 	let processedIndex = 0;
-	for (const file of allFiles) {
+	for (const file of filesToProcess) {
 		if (progressModal?.checkCancelled()) {
 			break;
 		}
