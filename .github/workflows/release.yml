@@ -42,7 +42,7 @@ jobs:
           files: |
             main.js
             manifest.json
-          draft: false
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
