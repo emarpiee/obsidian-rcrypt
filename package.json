@@ -1,6 +1,6 @@
 {
 	"name": "rcrypt",
-	"version": "0.0.9",
+	"version": "0.0.10",
 	"description": "Client-side file and folder encryption plugin, 100% compatible with Rclone Crypt.",
 	"main": "main.js",
 	"scripts": {
