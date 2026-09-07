@@ -1,1 +1,104 @@
 /* Custom styles for obsidian-rcrypt */
+
+.rcrypt-modal-error {
+	background-color: rgba(235, 87, 87, 0.15);
+	color: var(--text-error, #e53935);
+	border: 1px solid var(--text-error, #e53935);
+	border-radius: 6px;
+	padding: 10px 14px;
+	margin-bottom: 14px;
+	font-weight: 600;
+	font-size: 13px;
+	line-height: 1.4;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	animation: rcrypt-shake 0.3s ease-in-out;
+}
+
+.rcrypt-modal-warning {
+	background-color: var(--background-secondary-alt);
+	color: var(--text-muted);
+	border-left: 3px solid var(--text-accent);
+	border-radius: 4px;
+	padding: 10px 14px;
+	margin-bottom: 15px;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+@keyframes rcrypt-shake {
+	0%, 100% { transform: translateX(0); }
+	20%, 60% { transform: translateX(-6px); }
+	40%, 80% { transform: translateX(6px); }
+}
+
+.modal:not(.mod-settings) .setting-item:not(.setting-item-heading):where(:not(.setting-group *)):last-child {
+	padding-bottom: var(--size-4-4);
+}
+
+/* Clean layout strictly scoped to RCrypt modals */
+.rcrypt-modal .setting-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 0;
+}
+
+.rcrypt-modal .setting-item-info {
+	flex: 1 1 auto;
+	margin-right: 12px;
+	max-width: 60%;
+}
+
+.rcrypt-modal .setting-item-control {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.rcrypt-modal .setting-item.rcrypt-modal-actions {
+	padding-top: 14px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.rcrypt-modal .setting-item.rcrypt-modal-actions .setting-item-control {
+	width: 100%;
+	display: flex;
+	gap: 8px;
+	place-content: center;
+}
+
+@media (max-width: 500px) {
+	.rcrypt-modal .setting-item {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.rcrypt-modal .setting-item-info {
+		max-width: 100%;
+		margin-right: 0;
+		margin-bottom: 6px;
+	}
+
+	.rcrypt-modal .setting-item-control {
+		width: 100%;
+	}
+
+	.rcrypt-modal .setting-item-control input[type="text"],
+	.rcrypt-modal .setting-item-control input[type="password"],
+	.rcrypt-modal .setting-item-control select,
+	.rcrypt-modal .setting-item-control .dropdown {
+		flex: 1;
+		width: 100%;
+	}
+
+	.rcrypt-modal .setting-item.rcrypt-modal-actions .setting-item-control {
+		flex-direction: column;
+	}
+
+	.rcrypt-modal .setting-item.rcrypt-modal-actions .setting-item-control button {
+		width: 100%;
+		margin-left: 0 !important;
+	}
+}

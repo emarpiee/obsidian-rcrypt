@@ -1,4 +1,4 @@
-import { AbstractInputSuggest, App, FuzzySuggestModal, Modal, Notice, Setting, TAbstractFile, TFile, TFolder, setIcon } from 'obsidian';
+import { AbstractInputSuggest, App, FuzzySuggestModal, Modal, Setting, TAbstractFile, TFile, TFolder, setIcon } from 'obsidian';
 import { processItems } from '../contextMenu/registerMenu';
 import { getText } from '../i18n/i18n';
 import type { CryptProfile, FilenameEncoding, FilenameEncryptionMode } from '../types';
@@ -8,6 +8,7 @@ export interface PassphrasePromptResult {
 	profileId: string;
 	passphrase: string;
 	salt: string;
+	autoEncryptOnClose?: boolean;
 	customFilenameEncryptionMode?: FilenameEncryptionMode;
 	customFilenameEncoding?: FilenameEncoding;
 	customEncryptedExtension?: string;
@@ -24,6 +25,8 @@ export class PassphraseModal extends Modal {
 	private onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean;
 	private modalTitle: string;
 	private items?: TAbstractFile[];
+	private action?: 'encrypt' | 'decrypt';
+	private isSubmitted = false;
 
 	constructor(
 		app: App,
@@ -31,7 +34,8 @@ export class PassphraseModal extends Modal {
 		profiles: CryptProfile[],
 		initialProfileId: string,
 		onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean,
-		items?: TAbstractFile[]
+		items?: TAbstractFile[],
+		action?: 'encrypt' | 'decrypt'
 	) {
 		super(app);
 		this.modalTitle = modalTitle;
@@ -39,11 +43,12 @@ export class PassphraseModal extends Modal {
 		this.selectedProfileId = initialProfileId;
 		this.onSubmit = onSubmit;
 		this.items = items;
+		this.action = action;
 
 		const profile = profiles.find((p) => p.id === initialProfileId);
 		if (profile) {
-			this.passphrase = profile.passphrase || '';
-			this.salt = profile.salt || '';
+			this.passphrase = profile.savePassphraseOnDisk ? (profile.passphrase || '') : '';
+			this.salt = profile.savePassphraseOnDisk ? (profile.salt || '') : '';
 			this.customMode = profile.filenameEncryptionMode;
 			this.customEncoding = profile.filenameEncoding;
 			this.customSuffix = profile.encryptedExtension;
@@ -51,7 +56,8 @@ export class PassphraseModal extends Modal {
 	}
 
 	onOpen(): void {
-		const { contentEl } = this;
+		const { containerEl, contentEl } = this;
+		containerEl.addClass('rcrypt-modal');
 		const t = getText();
 		this.setTitle(this.modalTitle);
 		contentEl.empty();
@@ -97,8 +103,8 @@ export class PassphraseModal extends Modal {
 					this.selectedProfileId = val;
 					const selProf = this.profiles.find((p) => p.id === val);
 					if (selProf) {
-						this.passphrase = selProf.passphrase || '';
-						this.salt = selProf.salt || '';
+						this.passphrase = selProf.savePassphraseOnDisk ? (selProf.passphrase || '') : '';
+						this.salt = selProf.savePassphraseOnDisk ? (selProf.salt || '') : '';
 						this.customMode = selProf.filenameEncryptionMode;
 						this.customEncoding = selProf.filenameEncoding;
 						this.customSuffix = selProf.encryptedExtension;
@@ -123,7 +129,10 @@ export class PassphraseModal extends Modal {
 
 		const renderCustomControls = (): void => {
 			customContainer.empty();
-			if (this.selectedProfileId !== 'custom') return;
+			const activeProf = this.profiles.find((p) => p.id === this.selectedProfileId);
+			const needsPassword = this.selectedProfileId === 'custom' || (activeProf && (!activeProf.savePassphraseOnDisk || !activeProf.passphrase));
+
+			if (!needsPassword && this.selectedProfileId !== 'custom') return;
 
 			// Passphrase Input Setting with Toggle Password Visibility button
 			const passSetting = new Setting(customContainer)
@@ -183,6 +192,8 @@ export class PassphraseModal extends Modal {
 					}
 				});
 			});
+
+			if (this.selectedProfileId !== 'custom') return;
 
 			let encodingSetting: Setting | undefined;
 			let suffixSetting: Setting | undefined;
@@ -262,45 +273,81 @@ export class PassphraseModal extends Modal {
 			});
 		}
 
-		new Setting(contentEl).addButton((btn) => {
-			btn
-				.setButtonText(t.modalConfirmBtn)
-				.setCta()
-				.onClick(async () => {
-					if (this.selectedProfileId === 'custom' && !this.passphrase) {
-						errorDiv.setText(t.modalErrPassphraseRequired);
-						errorDiv.setCssProps({ display: 'block' });
-						return;
-					}
+		const buttonSetting = new Setting(contentEl);
+		buttonSetting.settingEl.addClass('rcrypt-modal-actions');
 
-					try {
-						const success = await this.onSubmit({
-							profileId: this.selectedProfileId,
-							passphrase: this.passphrase,
-							salt: this.salt,
-							customFilenameEncryptionMode: this.customMode,
-							customFilenameEncoding: this.customEncoding,
-							customEncryptedExtension: this.customSuffix,
-						});
-						if (success) {
-							this.close();
-						} else {
-							errorDiv.setText(t.modalErrDecryptFailed);
-							errorDiv.setCssProps({ display: 'block' });
-							new Notice(t.modalErrDecryptFailed, 8000);
-						}
-					} catch (err: unknown) {
-						const msg = err instanceof Error ? err.message : 'Invalid passphrase or file error.';
-						errorDiv.setText(`❌ ${msg}`);
-						errorDiv.setCssProps({ display: 'block' });
-					}
+		const handleActionSubmit = async (autoEncryptOnClose: boolean): Promise<void> => {
+			const activeProf = this.profiles.find((p) => p.id === this.selectedProfileId);
+			const needsPassphrase = this.selectedProfileId === 'custom' || (activeProf && (!activeProf.savePassphraseOnDisk || !activeProf.passphrase));
+			if (needsPassphrase && !this.passphrase) {
+				errorDiv.setText(t.modalErrPassphraseRequired);
+				errorDiv.setCssProps({ display: 'block' });
+				return;
+			}
+
+			try {
+				const success = await this.onSubmit({
+					profileId: this.selectedProfileId,
+					passphrase: this.passphrase,
+					salt: this.salt,
+					autoEncryptOnClose,
+					customFilenameEncryptionMode: this.customMode,
+					customFilenameEncoding: this.customEncoding,
+					customEncryptedExtension: this.customSuffix,
 				});
-		});
+				if (success) {
+					this.isSubmitted = true;
+					this.close();
+				} else {
+					errorDiv.setText(t.modalErrDecryptFailed);
+					errorDiv.setCssProps({ display: 'block' });
+				}
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : 'Invalid passphrase or file error.';
+				errorDiv.setText(`❌ ${msg}`);
+				errorDiv.setCssProps({ display: 'block' });
+			}
+		};
+
+		if (this.action === 'decrypt') {
+			buttonSetting.addButton((btn) => {
+				btn
+					.setButtonText(t.modalDecryptTempBtn || '🔓 Temporary view (lock on close)')
+					.setCta()
+					.onClick(() => {
+						void handleActionSubmit(true);
+					});
+			});
+			buttonSetting.addButton((btn) => {
+				btn
+					.setButtonText(t.modalDecryptPermBtn || '🔓 Permanent decrypt (keep plain file)')
+					.onClick(() => {
+						void handleActionSubmit(false);
+					});
+			});
+		} else {
+			buttonSetting.addButton((btn) => {
+				btn
+					.setButtonText(t.modalConfirmBtn)
+					.setCta()
+					.onClick(() => {
+						void handleActionSubmit(false);
+					});
+			});
+		}
 	}
 
 	onClose(): void {
 		const { contentEl } = this;
+		this.passphrase = '';
+		this.salt = '';
 		contentEl.empty();
+		if (!this.isSubmitted) {
+			const activeLeaf = this.app.workspace.getLeaf(false);
+			if (activeLeaf) {
+				activeLeaf.detach();
+			}
+		}
 	}
 }
 
@@ -413,7 +460,8 @@ export class ConfirmEncryptModal extends Modal {
 	}
 
 	onOpen(): void {
-		const { contentEl } = this;
+		const { containerEl, contentEl } = this;
+		containerEl.addClass('rcrypt-modal');
 		const t = getText();
 		this.setTitle(t.confirmEncryptTitle || 'Confirm Encryption');
 		contentEl.empty();
@@ -618,7 +666,7 @@ export class ConfirmEncryptModal extends Modal {
 			borderRadius: '4px',
 		});
 
-		const warningBox = contentEl.createDiv({ cls: 'rcrypt-modal-error' });
+		const warningBox = contentEl.createDiv({ cls: 'rcrypt-modal-warning' });
 		warningBox.setCssProps({ display: 'block', marginBottom: '15px' });
 		warningBox.setText(
 			t.confirmEncryptWarning ||

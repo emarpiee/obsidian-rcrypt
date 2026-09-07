@@ -1,4 +1,4 @@
-import { Menu, Notice, Platform, TAbstractFile, TFile, TFolder } from 'obsidian';
+import { Menu, Platform, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
 import { CryptProfile, getFolderEncryptionMode } from '../types';
@@ -126,7 +126,8 @@ export async function processItems(
 	items: TAbstractFile[],
 	action: 'encrypt' | 'decrypt',
 	useCustomPrompt: boolean,
-	profileId?: string
+	profileId?: string,
+	openInNewLeaf = false
 ): Promise<void> {
 	const t = getText();
 	const initialProfile = profileId
@@ -149,6 +150,7 @@ export async function processItems(
 							name: 'Custom Configuration',
 							passphrase: res.passphrase,
 							salt: res.salt,
+							autoEncryptOnClose: res.autoEncryptOnClose ?? false,
 							filenameEncryptionMode: res.customFilenameEncryptionMode || 'standard',
 							filenameEncoding: res.customFilenameEncoding || 'base32',
 							encryptedExtension: res.customEncryptedExtension || '.rcrypt',
@@ -156,17 +158,29 @@ export async function processItems(
 							savePassphraseOnDisk: false,
 						};
 					} else {
-						selectedProfile = plugin.engine.getProfileById(res.profileId) || targetProfile;
-						selectedProfile.passphrase = res.passphrase;
-						selectedProfile.salt = res.salt;
+						const baseProf = plugin.engine.getProfileById(res.profileId) || targetProfile;
+						selectedProfile = {
+							...baseProf,
+							passphrase: res.passphrase,
+							salt: res.salt,
+							autoEncryptOnClose: res.autoEncryptOnClose ?? false,
+						};
 					}
-					const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, selectedProfile);
+					const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, selectedProfile, openInNewLeaf);
+					if (action === 'decrypt' && result.successCount > 0 && res.autoEncryptOnClose) {
+						for (const item of items) {
+							if (item instanceof TFile) {
+								plugin.registerDecryptedSessionFile(item.path, selectedProfile);
+							}
+						}
+					}
 					return result.successCount > 0 && result.failCount === 0;
 				},
-				items
+				items,
+				action
 			).open();
 		} else {
-			await executeBatchAction(
+			const res = await executeBatchAction(
 				plugin,
 				items,
 				action,
@@ -174,6 +188,13 @@ export async function processItems(
 				targetProfile.salt,
 				targetProfile
 			);
+			if (action === 'decrypt' && res.successCount > 0) {
+				for (const item of items) {
+					if (item instanceof TFile) {
+						plugin.registerDecryptedSessionFile(item.path, targetProfile);
+					}
+				}
+			}
 		}
 	};
 
@@ -192,13 +213,14 @@ export async function processItems(
 	}
 }
 
-async function executeBatchAction(
+export async function executeBatchAction(
 	plugin: RCryptPlugin,
 	items: TAbstractFile[],
 	action: 'encrypt' | 'decrypt',
 	passphrase: string,
 	salt: string,
-	profile: CryptProfile
+	profile: CryptProfile,
+	openInNewLeaf = false
 ): Promise<{ successCount: number; failCount: number }> {
 	const t = getText();
 	let successCount = 0;
@@ -357,7 +379,10 @@ async function executeBatchAction(
 	}
 
 	if (action === 'decrypt' && decryptedFiles.length > 0) {
-		const leaf = plugin.app.workspace.getLeaf(false);
+		for (const f of decryptedFiles) {
+			plugin.registerDecryptedSessionFile(f.path, profile);
+		}
+		const leaf = plugin.app.workspace.getLeaf(openInNewLeaf);
 		if (leaf) {
 			void leaf.openFile(decryptedFiles[0]);
 		}
@@ -409,33 +434,33 @@ async function executeBatchAction(
 
 	if (successCount > 0 || failCount > 0) {
 		if (failCount > 0 && successCount === 0) {
-			new Notice(
+			plugin.showNotice(
 				action === 'encrypt'
 					? t.noticeEncryptFailed(failCount, firstErrorMessage)
 					: t.noticeDecryptFailed(failCount, firstErrorMessage),
-				10000
+				12000
 			);
 		} else if (failCount > 0) {
-			new Notice(
+			plugin.showNotice(
 				t.noticeActionFinishedWithErrors(action, successCount, failCount, firstErrorMessage),
-				10000
+				12000
 			);
 		} else {
-			new Notice(
+			plugin.showNotice(
 				action === 'encrypt'
 					? t.noticeEncryptSuccess(successCount)
 					: t.noticeDecryptSuccess(successCount),
-				6000
+				8000
 			);
 		}
 	} else {
 		// Informative notice when no items were modified (e.g. already encrypted/decrypted)
 		if (allFiles.length === 0) {
-			new Notice(t.noticeNoFilesFound, 5000);
+			plugin.showNotice(t.noticeNoFilesFound, 8000);
 		} else if (action === 'encrypt') {
-			new Notice(t.noticeAlreadyEncrypted, 5000);
+			plugin.showNotice(t.noticeAlreadyEncrypted, 8000);
 		} else {
-			new Notice(t.noticeAlreadyDecrypted, 5000);
+			plugin.showNotice(t.noticeAlreadyDecrypted, 8000);
 		}
 	}
 

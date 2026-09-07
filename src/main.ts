@@ -1,10 +1,10 @@
 import { App, Notice, Plugin, TFile } from 'obsidian';
 import './main.css';
-import { processItems, registerContextMenu } from './contextMenu/registerMenu';
+import { executeBatchAction, processItems, registerContextMenu } from './contextMenu/registerMenu';
 import { obscurePassword, revealPassword } from './crypto/obscure';
 import { RCryptEngine } from './crypto/rcryptEngine';
 import { getText } from './i18n/i18n';
-import { DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
+import { CryptProfile, DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
 import { EncryptSuggestModal } from './ui/modals';
 import { RCryptSettingTab } from './ui/settingsTab';
 
@@ -16,6 +16,66 @@ export default class RCryptPlugin extends Plugin {
 	settings: RCryptSettings = DEFAULT_SETTINGS;
 	engine!: RCryptEngine;
 	updateDynamicCommands?: () => void;
+	sessionDecryptedMap = new Map<string, { profile: CryptProfile }>();
+	private activeNotice: Notice | null = null;
+
+	showNotice(message: string, durationMs = 8000): void {
+		if (this.activeNotice) {
+			this.activeNotice.hide();
+		}
+		this.activeNotice = new Notice(message, durationMs);
+	}
+
+	registerDecryptedSessionFile(path: string, profile: CryptProfile): void {
+		this.sessionDecryptedMap.set(path, { profile });
+	}
+
+	async checkAndAutoEncryptClosedFiles(): Promise<void> {
+		if (this.sessionDecryptedMap.size === 0) return;
+
+		const openPaths = new Set<string>();
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const viewState = leaf.getViewState();
+			const filePath = (viewState.state as { file?: string })?.file;
+			if (filePath) {
+				openPaths.add(filePath);
+			}
+		});
+
+		for (const [decryptedPath, sessionData] of Array.from(this.sessionDecryptedMap.entries())) {
+			if (!openPaths.has(decryptedPath)) {
+				const file = this.app.vault.getAbstractFileByPath(decryptedPath);
+				if (file instanceof TFile) {
+					const prof = sessionData.profile;
+					if (prof.autoEncryptOnClose) {
+						this.sessionDecryptedMap.delete(decryptedPath);
+						void (async (): Promise<void> => {
+							if (!prof.passphrase) {
+								this.showNotice(`🔑 Please enter password to re-encrypt ${file.name}`, 10000);
+								await processItems(this, [file], 'encrypt', true, prof.id);
+							} else {
+								const res = await executeBatchAction(
+									this,
+									[file],
+									'encrypt',
+									prof.passphrase,
+									prof.salt,
+									prof
+								);
+								if (res.successCount > 0) {
+									this.showNotice(`🔒 Locked ${file.name}`, 8000);
+								}
+							}
+						})();
+					} else {
+						this.sessionDecryptedMap.delete(decryptedPath);
+					}
+				} else {
+					this.sessionDecryptedMap.delete(decryptedPath);
+				}
+			}
+		}
+	}
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -57,7 +117,7 @@ export default class RCryptPlugin extends Plugin {
 				if (settingTab?.activeTab?.plugin === this && typeof settingTab.activeTab.display === 'function') {
 					settingTab.activeTab.display();
 				}
-				new Notice(getText().lockVaultNotice || '🧹 Session password & salt cleared from memory.', 5000);
+				this.showNotice(getText().lockVaultNotice || '🧹 Session password & salt cleared from memory.', 8000);
 			},
 		});
 
@@ -191,6 +251,7 @@ export default class RCryptPlugin extends Plugin {
 					(suffix !== '' && abstractFile.name.endsWith(suffix));
 
 				if (isLikelyEncrypted) {
+					const isNewTab = evt.ctrlKey || evt.metaKey || evt.button === 1;
 					// MUST call preventDefault synchronously BEFORE any async execution to prevent OS Open With dialog
 					evt.preventDefault();
 					evt.stopPropagation();
@@ -203,7 +264,7 @@ export default class RCryptPlugin extends Plugin {
 							(await hasRcloneHeader(this.app, abstractFile));
 
 						if (isEncrypted) {
-							void processItems(this, [abstractFile], 'decrypt', true, activeProfile.id);
+							void processItems(this, [abstractFile], 'decrypt', true, activeProfile.id, isNewTab);
 						} else if (targetApp.openWithDefaultApp) {
 							// Fallback to default app if not actually encrypted
 							void targetApp.openWithDefaultApp(abstractFile.path);
@@ -215,6 +276,13 @@ export default class RCryptPlugin extends Plugin {
 		);
 
 		registerContextMenu(this);
+
+		// Register layout-change listener to auto re-encrypt closed decrypted tabs
+		this.registerEvent(
+			this.app.workspace.on('layout-change', () => {
+				void this.checkAndAutoEncryptClosedFiles();
+			})
+		);
 	}
 
 	onunload(): void {

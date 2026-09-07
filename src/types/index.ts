@@ -21,6 +21,7 @@ export interface CryptProfile {
 	encryptedExtension: string;
 	encryptFolderNames: boolean | FolderEncryptionMode;
 	savePassphraseOnDisk?: boolean;
+	autoEncryptOnClose?: boolean;
 }
 
 export interface FolderProfileMapping {
@@ -47,6 +48,7 @@ export const DEFAULT_PROFILE: CryptProfile = {
 	encryptedExtension: '.rcrypt',
 	encryptFolderNames: false,
 	savePassphraseOnDisk: false,
+	autoEncryptOnClose: false,
 };
 
 export const DEFAULT_SETTINGS: RCryptSettings = {

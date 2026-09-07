@@ -11,6 +11,8 @@ export interface TranslationSchema {
 
 	savePassphraseOnDiskName?: string;
 	savePassphraseOnDiskDesc?: string;
+	autoEncryptOnCloseName?: string;
+	autoEncryptOnCloseDesc?: string;
 	lockVaultName?: string;
 	lockVaultNotice?: string;
 
@@ -66,6 +68,8 @@ export interface TranslationSchema {
 	modalSaltName: string;
 	modalSaltDesc: string;
 	modalConfirmBtn: string;
+	modalDecryptTempBtn?: string;
+	modalDecryptPermBtn?: string;
 	modalErrPassphraseRequired: string;
 	modalErrDecryptFailed: string;
 
@@ -101,37 +105,34 @@ const en: TranslationSchema = {
 	generalOptionsHeader: 'Additional options',
 
 	savePassphraseOnDiskName: 'Save password on disk',
-	savePassphraseOnDiskDesc: 'If disabled (recommended), password and salt are kept only in RAM for the current session and never stored on disk.',
+	savePassphraseOnDiskDesc: 'If disabled (recommended), passphrases are kept only in RAM for the current session and never stored on disk.',
+	autoEncryptOnCloseName: 'Lock on tab close',
+	autoEncryptOnCloseDesc: 'Automatically locks notes and removes unencrypted plain files when their tab is closed.',
 	lockVaultName: 'Clear session password & salt from memory',
 	lockVaultNotice: '🧹 Session password & salt cleared from memory.',
 
 	settingsHeading: 'Vault encryption configuration',
 	settingsHeadingDesc: '1:1 client-side encryption compatible with RCLONE Crypt. Files and folders encrypted here can be directly decrypted by RCLONE CLI and vice versa using matching passphrase, salt, and filename encryption settings.',
-	defaultPassphraseName: 'Password or pass phrase (for encryption)',
-	defaultPassphraseDesc: 'Primary encryption password (corresponds to password in rclone config).',
-	defaultPassphrasePlaceholder: 'Enter encryption password...',
-	defaultSaltName: 'Password or pass phrase (for salt)',
-	defaultSaltDesc: 'Password salt (corresponds to password2 in rclone config). Optional but recommended.',
-	defaultSaltWarning: ' ⚠️ Using default salt ("rclone") is weaker against rainbow table attacks.',
+	defaultPassphraseName: 'Primary password',
+	defaultPassphraseDesc: 'Main encryption passphrase matching your rclone crypt passphrase.',
+	defaultPassphrasePlaceholder: 'Enter passphrase...',
+	defaultSaltName: 'Salt (password2)',
+	defaultSaltDesc: 'Secondary key derivation salt (defaults to "rclone" standard if blank).',
+	defaultSaltWarning: '⚠️ Important: Salt must match between Obsidian and rclone to decrypt files.',
 	defaultSaltPlaceholder: 'rclone',
 	filenameEncryptionModeName: 'Filename encryption mode',
-	filenameEncryptionModeDesc: 'Mode matching crypt-filename-encryption in rclone.conf',
-	modeStandard: 'Standard (AES-256 EME - Recommended)',
-	modeObfuscate: 'Obfuscate (Light rotation)',
+	filenameEncryptionModeDesc: 'Rclone compatible filename encryption scheme.',
+	modeStandard: 'Standard (EME full filename encryption)',
+	modeObfuscate: 'Obfuscate (Simple filename obfuscation)',
 	modeOff: 'Off (Filenames left in plaintext)',
 	filenameEncodingName: 'Filename encoding',
-	filenameEncodingDesc: 'Text encoding matching filename_encoding in rclone.conf',
+	filenameEncodingDesc: 'Encoding scheme for encrypted filenames.',
 	encodingBase32: 'Base32 (Standard lowercase)',
-	encodingBase64: 'Base64 (URL-safe, case-sensitive)',
+	encodingBase64: 'Base64 (URL-safe base64)',
 	encryptedSuffixName: 'Encrypted file suffix',
-	encryptedSuffixDesc: 'Extension appended when filename encryption is "Off" (corresponds to --crypt-suffix in rclone).',
-	encryptFolderNamesName: 'Folder name encryption',
-	encryptFolderNamesDesc: 'Controls whether folder names (target folder and nested subfolders) are encrypted and renamed.',
-	folderEncryptionName: 'Folder name encryption',
-	folderEncryptionDesc: 'Controls whether folder names (target folder and nested subfolders) are encrypted and renamed.',
-	folderEncryptionAll: 'Target & all subfolders (Recommended)',
-	folderEncryptionTarget: 'Target folder only',
-	folderEncryptionOff: 'Off (Files only)',
+	encryptedSuffixDesc: 'File extension appended to encrypted files (e.g. .rcrypt).',
+	encryptFolderNamesName: 'Encrypt folder names',
+	encryptFolderNamesDesc: 'Encrypt folder names matching rclone directory encryption standard.',
 	autoDeleteSourceName: 'Auto-delete source file',
 	autoDeleteSourceDesc: 'Automatically delete unencrypted file after successful encryption.',
 
@@ -152,6 +153,8 @@ const en: TranslationSchema = {
 	modalSaltName: 'Salt',
 	modalSaltDesc: 'Salt / password2 (optional, defaults to settings or "rclone")',
 	modalConfirmBtn: 'Confirm',
+	modalDecryptTempBtn: '🔓 Temporary view (lock on close)',
+	modalDecryptPermBtn: '🔓 Permanent decrypt (keep plain file)',
 	modalErrPassphraseRequired: '⚠️ Please enter a passphrase.',
 	modalErrDecryptFailed: '❌ Decryption failed. Incorrect passphrase or salt.',
 
