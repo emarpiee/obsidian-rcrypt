@@ -1,7 +1,7 @@
 {
-	"id": "obsidian-rcrypt",
+	"id": "rcrypt",
 	"name": "RCrypt",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"minAppVersion": "1.13.0",
 	"description": "Client-side file and folder encryption for Obsidian, 100% compatible with Rclone Crypt.",
 	"author": "emarpiee",
