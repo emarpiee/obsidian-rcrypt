@@ -25,6 +25,54 @@ export class RCryptEngine {
 		return this.settings.profiles.find((p) => p.id === profileId);
 	}
 
+	/**
+	 * Resolves the appropriate CryptProfile for a given file or folder path by checking configured folder mappings.
+	 * Falls back to activeProfile if no specific mapping matches.
+	 */
+	public getProfileForPath(filePath?: string): CryptProfile {
+		if (filePath && this.settings.folderMappings && this.settings.folderMappings.length > 0) {
+			const normalizedPath = filePath.replace(/^\/+|\/+$/g, '');
+			const pathSegments = normalizedPath.split('/');
+
+			// Find longest matching folder path prefix
+			const sortedMappings = [...this.settings.folderMappings].sort(
+				(a, b) => b.folderPath.length - a.folderPath.length
+			);
+			for (const mapping of sortedMappings) {
+				const mapPath = mapping.folderPath.replace(/^\/+|\/+$/g, '');
+				if (!mapPath) continue;
+
+				const targetProfile = this.getProfileById(mapping.profileId);
+				if (!targetProfile) continue;
+
+				// Direct match on raw path
+				if (normalizedPath === mapPath || normalizedPath.startsWith(mapPath + '/')) {
+					return targetProfile;
+				}
+
+				// If folder name encryption is enabled on target profile, try decrypting each parent folder segment
+				if (targetProfile.filenameEncryptionMode !== 'off') {
+					try {
+						const decryptedSegments = pathSegments.map((segment) => {
+							try {
+								return this.decryptName(segment, targetProfile.passphrase, targetProfile.salt, targetProfile);
+							} catch {
+								return segment;
+							}
+						});
+						const decryptedPath = decryptedSegments.join('/');
+						if (decryptedPath === mapPath || decryptedPath.startsWith(mapPath + '/')) {
+							return targetProfile;
+						}
+					} catch {
+						// Fall through if decryption attempt fails
+					}
+				}
+			}
+		}
+		return this.getActiveProfile();
+	}
+
 	public getKeysForProfile(profile: CryptProfile): CryptoKeys {
 		if (!profile.passphrase) {
 			throw new Error(`Profile "${profile.name}" has no passphrase configured.`);

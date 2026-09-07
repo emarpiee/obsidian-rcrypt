@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
 import { CryptProfile, DEFAULT_PROFILE, getFolderEncryptionMode } from '../types';
+import { FolderInputSuggest } from './modals';
 
 export class RCryptSettingTab extends PluginSettingTab {
 	plugin: RCryptPlugin;
@@ -216,5 +217,56 @@ export class RCryptSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
+
+		// --- FOLDER PROFILE MAPPINGS SECTION ---
+		new Setting(containerEl)
+			.setName('Folder profile mappings')
+			.setDesc('Assign specific crypt profiles to designated folder paths (e.g. "Private/Journal"). Files inside will automatically use the mapped profile.')
+			.addButton((btn) => {
+				btn.setButtonText('+ Add folder mapping').onClick(async () => {
+					this.plugin.settings.folderMappings.push({
+						folderPath: '',
+						profileId: activeProfile.id,
+					});
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			});
+
+		this.plugin.settings.folderMappings.forEach((mapping, index) => {
+			const setting = new Setting(containerEl);
+
+			setting.addText((text) => {
+				text
+					.setPlaceholder('Folder path (e.g. Private/Journal)')
+					.setValue(mapping.folderPath)
+					.onChange(async (val) => {
+						mapping.folderPath = val.trim();
+						await this.plugin.saveSettings();
+					});
+				new FolderInputSuggest(this.app, text.inputEl);
+			});
+
+			setting.addDropdown((dropdown) => {
+				for (const p of this.plugin.settings.profiles) {
+					dropdown.addOption(p.id, p.name);
+				}
+				dropdown.setValue(mapping.profileId).onChange(async (val) => {
+					mapping.profileId = val;
+					await this.plugin.saveSettings();
+				});
+			});
+
+			setting.addButton((btn) => {
+				btn
+					.setIcon('trash')
+					.setTooltip('Delete mapping')
+					.onClick(async () => {
+						this.plugin.settings.folderMappings.splice(index, 1);
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
+		});
 	}
 }

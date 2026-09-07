@@ -100,8 +100,8 @@ export default class RCryptPlugin extends Plugin {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
 					if (!checking) {
-						const activeProfile = this.engine.getActiveProfile();
-						void processItems(this, [activeFile], 'encrypt', false, activeProfile.id);
+						const resolvedProfile = this.engine.getProfileForPath(activeFile.path);
+						void processItems(this, [activeFile], 'encrypt', false, resolvedProfile.id);
 					}
 					return true;
 				}

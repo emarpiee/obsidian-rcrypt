@@ -1,4 +1,4 @@
-import { App, FuzzySuggestModal, Modal, Notice, Setting, TAbstractFile, TFile, TFolder, setIcon } from 'obsidian';
+import { AbstractInputSuggest, App, FuzzySuggestModal, Modal, Notice, Setting, TAbstractFile, TFile, TFolder, setIcon } from 'obsidian';
 import { processItems } from '../contextMenu/registerMenu';
 import { getText } from '../i18n/i18n';
 import type { CryptProfile, FilenameEncoding, FilenameEncryptionMode } from '../types';
@@ -298,8 +298,8 @@ export class EncryptSuggestModal extends FuzzySuggestModal<TAbstractFile> {
 	}
 
 	onChooseItem(item: TAbstractFile, _evt: MouseEvent | KeyboardEvent): void {
-		const activeProfile = this.plugin.engine.getActiveProfile();
-		void processItems(this.plugin, [item], 'encrypt', false, activeProfile.id);
+		const resolvedProfile = this.plugin.engine.getProfileForPath(item.path);
+		void processItems(this.plugin, [item], 'encrypt', false, resolvedProfile.id);
 	}
 }
 
@@ -638,6 +638,120 @@ export class ConfirmEncryptModal extends Modal {
 					}
 				});
 		});
+	}
+
+	onClose(): void {
+		const { contentEl } = this;
+		contentEl.empty();
+	}
+}
+
+export class FolderInputSuggest extends AbstractInputSuggest<TFolder> {
+	private textInputEl: HTMLInputElement;
+
+	constructor(app: App, textInputEl: HTMLInputElement) {
+		super(app, textInputEl);
+		this.textInputEl = textInputEl;
+	}
+
+	getSuggestions(inputStr: string): TFolder[] {
+		const lowerInput = inputStr.toLowerCase();
+		return this.app.vault
+			.getAllLoadedFiles()
+			.filter(
+				(f): f is TFolder =>
+					f instanceof TFolder &&
+					f.path !== '/' &&
+					f.path.toLowerCase().contains(lowerInput)
+			);
+	}
+
+	renderSuggestion(folder: TFolder, el: HTMLElement): void {
+		el.setText(folder.path);
+	}
+
+	selectSuggestion(folder: TFolder): void {
+		this.textInputEl.value = folder.path;
+		this.textInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+		this.close();
+	}
+}
+
+export class ProgressModal extends Modal {
+	private action: 'encrypt' | 'decrypt';
+	private total: number;
+	private current = 0;
+	private currentFile = '';
+	private isCancelled = false;
+
+	private statusEl!: HTMLDivElement;
+	private fileEl!: HTMLDivElement;
+	private progressEl!: HTMLProgressElement;
+
+	constructor(app: App, action: 'encrypt' | 'decrypt', total: number) {
+		super(app);
+		this.action = action;
+		this.total = total;
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		const icon = this.action === 'encrypt' ? '🔒' : '🔓';
+		const actionTitle = this.action === 'encrypt' ? 'Encrypting' : 'Decrypting';
+		this.setTitle(`${icon} ${actionTitle} ${this.total} item(s)...`);
+
+		contentEl.empty();
+
+		this.statusEl = contentEl.createDiv({ cls: 'rcrypt-progress-status' });
+		this.statusEl.setText(`Processing 0 of ${this.total} (0%)...`);
+		this.statusEl.setCssProps({ marginBottom: '8px', fontWeight: 'bold' });
+
+		this.fileEl = contentEl.createDiv({ cls: 'rcrypt-progress-file' });
+		this.fileEl.setText('');
+		this.fileEl.setCssProps({
+			fontSize: '12px',
+			color: 'var(--text-muted)',
+			marginBottom: '12px',
+			fontFamily: 'var(--font-monospace)',
+			overflow: 'hidden',
+			textOverflow: 'ellipsis',
+			whiteSpace: 'nowrap',
+		});
+
+		this.progressEl = contentEl.createEl('progress');
+		this.progressEl.max = this.total;
+		this.progressEl.value = 0;
+		this.progressEl.setCssProps({ width: '100%', marginBottom: '15px' });
+
+		const cancelBtnSetting = new Setting(contentEl);
+		cancelBtnSetting.addButton((btn) => {
+			btn.setButtonText('Cancel').setWarning().onClick(() => {
+				this.isCancelled = true;
+				btn.setDisabled(true);
+				btn.setButtonText('Cancelling...');
+				this.statusEl.setText('⚠️ Cancelling operation...');
+			});
+		});
+	}
+
+	public updateProgress(current: number, filename: string): void {
+		this.current = current;
+		this.currentFile = filename;
+		const pct = Math.round((current / this.total) * 100);
+
+		if (this.statusEl) {
+			this.statusEl.setText(`Processing ${current} of ${this.total} (${pct}%)...`);
+		}
+		if (this.fileEl) {
+			this.fileEl.setText(`Current: ${filename}`);
+		}
+		if (this.progressEl) {
+			this.progressEl.value = current;
+		}
+	}
+
+	public checkCancelled(): boolean {
+		return this.isCancelled;
 	}
 
 	onClose(): void {

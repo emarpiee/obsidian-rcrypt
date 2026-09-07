@@ -2,7 +2,7 @@ import { Menu, Notice, Platform, TAbstractFile, TFile, TFolder } from 'obsidian'
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
 import { CryptProfile, getFolderEncryptionMode } from '../types';
-import { ConfirmEncryptModal, PassphraseModal } from '../ui/modals';
+import { ConfirmEncryptModal, PassphraseModal, ProgressModal } from '../ui/modals';
 
 export function registerContextMenu(plugin: RCryptPlugin): void {
 	plugin.registerEvent(
@@ -85,7 +85,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 	const t = getText();
 	const isFolder = files.length === 1 && files[0] instanceof TFolder;
 	const count = files.length;
-	const activeProfile = plugin.engine.getActiveProfile();
+	const resolvedProfile = plugin.engine.getProfileForPath(files[0]?.path);
 	const showDecrypt = hasEncryptedContent(plugin, files);
 
 	menu.addItem((item) => {
@@ -99,7 +99,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 			)
 			.setIcon('lock')
 			.onClick(() => {
-				void processItems(plugin, files, 'encrypt', false, activeProfile.id);
+				void processItems(plugin, files, 'encrypt', false, resolvedProfile.id);
 			});
 	});
 
@@ -115,7 +115,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 				)
 				.setIcon('unlock')
 				.onClick(() => {
-					void processItems(plugin, files, 'decrypt', true, activeProfile.id);
+					void processItems(plugin, files, 'decrypt', true, resolvedProfile.id);
 				});
 		});
 	}
@@ -130,8 +130,8 @@ export async function processItems(
 ): Promise<void> {
 	const t = getText();
 	const initialProfile = profileId
-		? plugin.engine.getProfileById(profileId) || plugin.engine.getActiveProfile()
-		: plugin.engine.getActiveProfile();
+		? plugin.engine.getProfileById(profileId) || plugin.engine.getProfileForPath(items[0]?.path)
+		: plugin.engine.getProfileForPath(items[0]?.path);
 
 	const executeWithProfile = async (targetProfile: CryptProfile): Promise<void> => {
 		const title = action === 'encrypt' ? t.modalTitleEncrypt(items.length) : t.modalTitleDecrypt(items.length);
@@ -218,10 +218,22 @@ async function executeBatchAction(
 	}
 
 	let firstErrorMessage = '';
-
 	const filesToDeleteOnSuccess: TFile[] = [];
 
+	let progressModal: ProgressModal | undefined;
+	if (allFiles.length >= 1) {
+		progressModal = new ProgressModal(plugin.app, action, allFiles.length);
+		progressModal.open();
+	}
+
+	let processedIndex = 0;
 	for (const file of allFiles) {
+		if (progressModal?.checkCancelled()) {
+			break;
+		}
+		processedIndex++;
+		progressModal?.updateProgress(processedIndex, file.name);
+
 		try {
 			if (action === 'encrypt') {
 				const isAlreadyEncrypted = isEncryptedFilename(file.name, profile.encryptedExtension, profile.filenameEncryptionMode);
@@ -329,8 +341,12 @@ async function executeBatchAction(
 		}
 	}
 
+	if (progressModal) {
+		progressModal.close();
+	}
+
 	// Only delete original unencrypted files after ALL files in batch encrypt successfully without errors
-	if (action === 'encrypt' && plugin.settings.autoDeleteSource && failCount === 0) {
+	if (action === 'encrypt' && plugin.settings.autoDeleteSource && failCount === 0 && !progressModal?.checkCancelled()) {
 		for (const f of filesToDeleteOnSuccess) {
 			try {
 				await plugin.app.vault.delete(f, true);
