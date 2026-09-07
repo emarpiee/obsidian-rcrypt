@@ -219,6 +219,8 @@ async function executeBatchAction(
 
 	let firstErrorMessage = '';
 
+	const filesToDeleteOnSuccess: TFile[] = [];
+
 	for (const file of allFiles) {
 		try {
 			if (action === 'encrypt') {
@@ -238,9 +240,7 @@ async function executeBatchAction(
 					toArrayBuffer(encryptedBytes)
 				);
 
-				if (plugin.settings.autoDeleteSource) {
-					await plugin.app.vault.delete(file, true);
-				}
+				filesToDeleteOnSuccess.push(file);
 				successCount++;
 			} else {
 				// Decrypt action
@@ -325,6 +325,17 @@ async function executeBatchAction(
 			failCount++;
 			if (!firstErrorMessage) {
 				firstErrorMessage = err instanceof Error ? err.message : 'Unknown error';
+			}
+		}
+	}
+
+	// Only delete original unencrypted files after ALL files in batch encrypt successfully without errors
+	if (action === 'encrypt' && plugin.settings.autoDeleteSource && failCount === 0) {
+		for (const f of filesToDeleteOnSuccess) {
+			try {
+				await plugin.app.vault.delete(f, true);
+			} catch {
+				// Ignore deletion errors for already deleted files
 			}
 		}
 	}
