@@ -94,70 +94,70 @@ export class PassphraseModal extends Modal {
 				});
 			});
 
-		// Passphrase Input Setting with Toggle Password Visibility button
-		const passSetting = new Setting(contentEl)
-			.setName(t.modalPassphraseName)
-			.setDesc(t.modalPassphraseDesc)
-			.addText((text) => {
-				text.setValue(this.passphrase);
-				text.setPlaceholder(t.modalPassphrasePlaceholder);
-				text.inputEl.type = 'password';
-				passInputEl = text.inputEl;
-				text.onChange((value) => {
-					this.passphrase = value;
-					errorDiv.setCssProps({ display: 'none' });
-				});
-				text.inputEl.focus();
-			});
-
-		passSetting.addButton((btn) => {
-			btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
-				if (passInputEl) {
-					if (passInputEl.type === 'password') {
-						passInputEl.type = 'text';
-						setIcon(btn.buttonEl, 'eye-off');
-					} else {
-						passInputEl.type = 'password';
-						setIcon(btn.buttonEl, 'eye');
-					}
-				}
-			});
-		});
-
-		// Salt Input Setting
-		const saltSetting = new Setting(contentEl)
-			.setName(t.modalSaltName)
-			.setDesc(t.modalSaltDesc)
-			.addText((text) => {
-				text.setValue(this.salt);
-				text.setPlaceholder(t.defaultSaltPlaceholder);
-				text.inputEl.type = 'password';
-				saltInputEl = text.inputEl;
-				text.onChange((value) => {
-					this.salt = value;
-					errorDiv.setCssProps({ display: 'none' });
-				});
-			});
-
-		saltSetting.addButton((btn) => {
-			btn.setIcon('eye').setTooltip('Show/hide salt').onClick(() => {
-				if (saltInputEl) {
-					if (saltInputEl.type === 'password') {
-						saltInputEl.type = 'text';
-						setIcon(btn.buttonEl, 'eye-off');
-					} else {
-						saltInputEl.type = 'password';
-						setIcon(btn.buttonEl, 'eye');
-					}
-				}
-			});
-		});
-
 		const customContainer = contentEl.createDiv({ cls: 'rcrypt-custom-config-container' });
 
 		const renderCustomControls = (): void => {
 			customContainer.empty();
 			if (this.selectedProfileId !== 'custom') return;
+
+			// Passphrase Input Setting with Toggle Password Visibility button
+			const passSetting = new Setting(customContainer)
+				.setName(t.modalPassphraseName)
+				.setDesc(t.modalPassphraseDesc)
+				.addText((text) => {
+					text.setValue(this.passphrase);
+					text.setPlaceholder(t.modalPassphrasePlaceholder);
+					text.inputEl.type = 'password';
+					passInputEl = text.inputEl;
+					text.onChange((value) => {
+						this.passphrase = value;
+						errorDiv.setCssProps({ display: 'none' });
+					});
+					text.inputEl.focus();
+				});
+
+			passSetting.addButton((btn) => {
+				btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
+					if (passInputEl) {
+						if (passInputEl.type === 'password') {
+							passInputEl.type = 'text';
+							setIcon(btn.buttonEl, 'eye-off');
+						} else {
+							passInputEl.type = 'password';
+							setIcon(btn.buttonEl, 'eye');
+						}
+					}
+				});
+			});
+
+			// Salt Input Setting
+			const saltSetting = new Setting(customContainer)
+				.setName(t.modalSaltName)
+				.setDesc(t.modalSaltDesc)
+				.addText((text) => {
+					text.setValue(this.salt);
+					text.setPlaceholder(t.defaultSaltPlaceholder);
+					text.inputEl.type = 'password';
+					saltInputEl = text.inputEl;
+					text.onChange((value) => {
+						this.salt = value;
+						errorDiv.setCssProps({ display: 'none' });
+					});
+				});
+
+			saltSetting.addButton((btn) => {
+				btn.setIcon('eye').setTooltip('Show/hide salt').onClick(() => {
+					if (saltInputEl) {
+						if (saltInputEl.type === 'password') {
+							saltInputEl.type = 'text';
+							setIcon(btn.buttonEl, 'eye-off');
+						} else {
+							saltInputEl.type = 'password';
+							setIcon(btn.buttonEl, 'eye');
+						}
+					}
+				});
+			});
 
 			let encodingSetting: Setting | undefined;
 			let suffixSetting: Setting | undefined;
@@ -242,7 +242,7 @@ export class PassphraseModal extends Modal {
 				.setButtonText(t.modalConfirmBtn)
 				.setCta()
 				.onClick(async () => {
-					if (!this.passphrase) {
+					if (this.selectedProfileId === 'custom' && !this.passphrase) {
 						errorDiv.setText(t.modalErrPassphraseRequired);
 						errorDiv.setCssProps({ display: 'block' });
 						return;
