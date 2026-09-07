@@ -52,6 +52,11 @@ export default class RCryptPlugin extends Plugin {
 				if (this.engine) {
 					this.engine.updateSettings(this.settings);
 				}
+				// Refresh settings tab if it is currently open in Obsidian
+				const settingTab = (this.app as unknown as { setting?: { activeTab?: { plugin?: unknown; display?: () => void } } }).setting;
+				if (settingTab?.activeTab?.plugin === this && typeof settingTab.activeTab.display === 'function') {
+					settingTab.activeTab.display();
+				}
 				new Notice(getText().lockVaultNotice || '🧹 Session password & salt cleared from memory.', 5000);
 			},
 		});

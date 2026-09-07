@@ -19,13 +19,6 @@ export function deriveRcloneKeys(passphrase: string, salt: string): CryptoKeys {
 			? new TextEncoder().encode(salt)
 			: DEFAULT_RCLONE_SALT;
 
-	if (!passphrase) {
-		return {
-			dataKey: new Uint8Array(32),
-			nameKey: new Uint8Array(32),
-			nameTweak: new Uint8Array(16),
-		};
-	}
 
 	const derived = scrypt(
 		new TextEncoder().encode(passphrase),
