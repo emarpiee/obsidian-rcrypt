@@ -62,6 +62,28 @@ export class PassphraseModal extends Modal {
 		let passInputEl: HTMLInputElement | undefined;
 		let saltInputEl: HTMLInputElement | undefined;
 
+		const hintEl = contentEl.createDiv({ cls: 'rcrypt-profile-hint' });
+		hintEl.setCssProps({
+			fontSize: '12px',
+			color: 'var(--text-accent)',
+			marginTop: '4px',
+			marginBottom: '10px',
+			fontStyle: 'italic',
+		});
+
+		const updateHintDisplay = (): void => {
+			hintEl.empty();
+			if (this.selectedProfileId !== 'custom') {
+				const activeProf = this.profiles.find((p) => p.id === this.selectedProfileId);
+				if (activeProf && activeProf.passphraseHint) {
+					hintEl.setText(`💡 Hint: ${activeProf.passphraseHint}`);
+					hintEl.toggle(true);
+					return;
+				}
+			}
+			hintEl.toggle(false);
+		};
+
 		new Setting(contentEl)
 			.setName(t.profileSettingTitle || 'Crypt Profile')
 			.setDesc(t.profileSettingDesc || 'Select profile credentials or custom parameters')
@@ -89,10 +111,13 @@ export class PassphraseModal extends Modal {
 					}
 					if (passInputEl) passInputEl.value = this.passphrase;
 					if (saltInputEl) saltInputEl.value = this.salt;
+					updateHintDisplay();
 					renderCustomControls();
 					errorDiv.setCssProps({ display: 'none' });
 				});
 			});
+
+		updateHintDisplay();
 
 		const customContainer = contentEl.createDiv({ cls: 'rcrypt-custom-config-container' });
 

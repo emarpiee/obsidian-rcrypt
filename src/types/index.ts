@@ -15,6 +15,7 @@ export interface CryptProfile {
 	name: string;
 	passphrase: string;
 	salt: string;
+	passphraseHint?: string;
 	filenameEncryptionMode: FilenameEncryptionMode;
 	filenameEncoding: FilenameEncoding;
 	encryptedExtension: string;
@@ -40,6 +41,7 @@ export const DEFAULT_PROFILE: CryptProfile = {
 	name: 'Default Profile',
 	passphrase: '',
 	salt: '',
+	passphraseHint: '',
 	filenameEncryptionMode: 'standard',
 	filenameEncoding: 'base32',
 	encryptedExtension: '.rcrypt',

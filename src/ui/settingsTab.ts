@@ -110,6 +110,20 @@ export class RCryptSettingTab extends PluginSettingTab {
 				text.inputEl.type = 'password';
 			});
 
+		// Password hint
+		new Setting(containerEl)
+			.setName('Password hint')
+			.setDesc('Optional hint to help remember your passphrase during decryption prompts.')
+			.addText((text) => {
+				text
+					.setPlaceholder('Enter password hint (optional)...')
+					.setValue(activeProfile.passphraseHint || '')
+					.onChange(async (value) => {
+						activeProfile.passphraseHint = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
 		// Salt (password2)
 		new Setting(containerEl)
 			.setName(t.defaultSaltName)
