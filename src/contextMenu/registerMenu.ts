@@ -198,11 +198,13 @@ export async function processItems(
 			new PassphraseModal(
 				plugin.app,
 				title,
-				targetProfile.salt,
+				plugin.settings.profiles,
+				targetProfile.id,
 				async (res) => {
-					// Store passphrase in RAM for current session
-					targetProfile.passphrase = res.passphrase;
-					const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, targetProfile);
+					const selectedProfile = plugin.engine.getProfileById(res.profileId) || targetProfile;
+					selectedProfile.passphrase = res.passphrase;
+					selectedProfile.salt = res.salt;
+					const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, selectedProfile);
 					return result.successCount > 0 && result.failCount === 0;
 				}
 			).open();
@@ -241,6 +243,7 @@ async function executeBatchAction(
 
 	const allFiles: TFile[] = [];
 	const topFolders: TFolder[] = [];
+	const decryptedFiles: TFile[] = [];
 
 	for (const item of items) {
 		if (item instanceof TFile) {
@@ -311,10 +314,12 @@ async function executeBatchAction(
 				// 3. Save decrypted file
 				const parentDir = file.parent && file.parent.path !== '/' ? `${file.parent.path}/` : '';
 				const targetPath = `${parentDir}${decName}`;
+				let decryptedFileObj: TFile | null = null;
 
 				if (targetPath === file.path) {
 					// In-place decryption
 					await plugin.app.vault.modifyBinary(file, toArrayBuffer(decryptedBytes));
+					decryptedFileObj = file;
 				} else {
 					const existingTarget = plugin.app.vault.getAbstractFileByPath(targetPath);
 					if (existingTarget instanceof TFile) {
@@ -322,8 +327,9 @@ async function executeBatchAction(
 						if (plugin.settings.autoDeleteSource) {
 							await plugin.app.vault.delete(file, true);
 						}
+						decryptedFileObj = existingTarget;
 					} else {
-						await plugin.app.vault.createBinary(
+						decryptedFileObj = await plugin.app.vault.createBinary(
 							targetPath,
 							toArrayBuffer(decryptedBytes)
 						);
@@ -332,6 +338,9 @@ async function executeBatchAction(
 						}
 					}
 				}
+				if (decryptedFileObj) {
+					decryptedFiles.push(decryptedFileObj);
+				}
 				successCount++;
 			}
 		} catch (err: unknown) {
@@ -339,6 +348,13 @@ async function executeBatchAction(
 			if (!firstErrorMessage) {
 				firstErrorMessage = err instanceof Error ? err.message : 'Unknown error';
 			}
+		}
+	}
+
+	if (action === 'decrypt' && decryptedFiles.length > 0) {
+		const leaf = plugin.app.workspace.getLeaf(false);
+		if (leaf) {
+			void leaf.openFile(decryptedFiles[0]);
 		}
 	}
 

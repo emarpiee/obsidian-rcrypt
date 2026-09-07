@@ -5,26 +5,37 @@ import type { CryptProfile } from '../types';
 import type RCryptPlugin from '../main';
 
 export interface PassphrasePromptResult {
+	profileId: string;
 	passphrase: string;
 	salt: string;
 }
 
 export class PassphraseModal extends Modal {
+	private selectedProfileId: string;
 	private passphrase = '';
 	private salt = '';
+	private profiles: CryptProfile[];
 	private onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean;
 	private modalTitle: string;
 
 	constructor(
 		app: App,
 		modalTitle: string,
-		defaultSalt: string,
+		profiles: CryptProfile[],
+		initialProfileId: string,
 		onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean
 	) {
 		super(app);
 		this.modalTitle = modalTitle;
-		this.salt = defaultSalt;
+		this.profiles = profiles;
+		this.selectedProfileId = initialProfileId;
 		this.onSubmit = onSubmit;
+
+		const profile = profiles.find((p) => p.id === initialProfileId) || profiles[0];
+		if (profile) {
+			this.passphrase = profile.passphrase || '';
+			this.salt = profile.salt || '';
+		}
 	}
 
 	onOpen(): void {
@@ -36,13 +47,41 @@ export class PassphraseModal extends Modal {
 		const errorDiv = contentEl.createDiv({ cls: 'rcrypt-modal-error' });
 		errorDiv.setCssProps({ display: 'none' });
 
+		let passInputEl: HTMLInputElement | undefined;
+		let saltInputEl: HTMLInputElement | undefined;
+
+		if (this.profiles.length > 0) {
+			new Setting(contentEl)
+				.setName(t.profileSettingTitle || 'Crypt Profile')
+				.setDesc(t.profileSettingDesc || 'Select profile credentials for decryption')
+				.addDropdown((dropdown) => {
+					for (const p of this.profiles) {
+						dropdown.addOption(p.id, p.name);
+					}
+					dropdown.setValue(this.selectedProfileId);
+					dropdown.onChange((val) => {
+						this.selectedProfileId = val;
+						const selProf = this.profiles.find((p) => p.id === val);
+						if (selProf) {
+							this.passphrase = selProf.passphrase || '';
+							this.salt = selProf.salt || '';
+							if (passInputEl) passInputEl.value = this.passphrase;
+							if (saltInputEl) saltInputEl.value = this.salt;
+						}
+						errorDiv.setCssProps({ display: 'none' });
+					});
+				});
+		}
+
 		// Passphrase Input Setting with Toggle Password Visibility button
 		const passSetting = new Setting(contentEl)
 			.setName(t.modalPassphraseName)
 			.setDesc(t.modalPassphraseDesc)
 			.addText((text) => {
+				text.setValue(this.passphrase);
 				text.setPlaceholder(t.modalPassphrasePlaceholder);
 				text.inputEl.type = 'password';
+				passInputEl = text.inputEl;
 				text.onChange((value) => {
 					this.passphrase = value;
 					errorDiv.setCssProps({ display: 'none' });
@@ -53,13 +92,12 @@ export class PassphraseModal extends Modal {
 		// Add show/hide password toggle button with Obsidian Lucide icon
 		passSetting.addButton((btn) => {
 			btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
-				const textComp = passSetting.components.find(c => 'inputEl' in c) as { inputEl: HTMLInputElement } | undefined;
-				if (textComp) {
-					if (textComp.inputEl.type === 'password') {
-						textComp.inputEl.type = 'text';
+				if (passInputEl) {
+					if (passInputEl.type === 'password') {
+						passInputEl.type = 'text';
 						setIcon(btn.buttonEl, 'eye-off');
 					} else {
-						textComp.inputEl.type = 'password';
+						passInputEl.type = 'password';
 						setIcon(btn.buttonEl, 'eye');
 					}
 				}
@@ -74,6 +112,7 @@ export class PassphraseModal extends Modal {
 				text.setValue(this.salt);
 				text.setPlaceholder(t.defaultSaltPlaceholder);
 				text.inputEl.type = 'password';
+				saltInputEl = text.inputEl;
 				text.onChange((value) => {
 					this.salt = value;
 					errorDiv.setCssProps({ display: 'none' });
@@ -82,13 +121,12 @@ export class PassphraseModal extends Modal {
 
 		saltSetting.addButton((btn) => {
 			btn.setIcon('eye').setTooltip('Show/hide salt').onClick(() => {
-				const textComp = saltSetting.components.find(c => 'inputEl' in c) as { inputEl: HTMLInputElement } | undefined;
-				if (textComp) {
-					if (textComp.inputEl.type === 'password') {
-						textComp.inputEl.type = 'text';
+				if (saltInputEl) {
+					if (saltInputEl.type === 'password') {
+						saltInputEl.type = 'text';
 						setIcon(btn.buttonEl, 'eye-off');
 					} else {
-						textComp.inputEl.type = 'password';
+						saltInputEl.type = 'password';
 						setIcon(btn.buttonEl, 'eye');
 					}
 				}
@@ -107,7 +145,11 @@ export class PassphraseModal extends Modal {
 					}
 
 					try {
-						const success = await this.onSubmit({ passphrase: this.passphrase, salt: this.salt });
+						const success = await this.onSubmit({
+							profileId: this.selectedProfileId,
+							passphrase: this.passphrase,
+							salt: this.salt,
+						});
 						if (success) {
 							this.close();
 						} else {

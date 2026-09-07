@@ -58,6 +58,8 @@ export interface TranslationSchema {
 	// Passphrase Modal
 	modalTitleEncrypt: (count: number) => string;
 	modalTitleDecrypt: (count: number) => string;
+	profileSettingTitle?: string;
+	profileSettingDesc?: string;
 	modalPassphraseName: string;
 	modalPassphraseDesc: string;
 	modalPassphrasePlaceholder: string;
@@ -79,6 +81,7 @@ export interface TranslationSchema {
 
 	// Command & Suggest Modal
 	encryptSuggestCommandName?: string;
+	encryptActiveFileCommandName?: string;
 	suggestModalPlaceholder?: string;
 
 	// Confirmation Warning Modal
@@ -167,6 +170,7 @@ const en: TranslationSchema = {
 	noticeAlreadyEncrypted: 'ℹ️ Selected file(s) are already encrypted.',
 	noticeAlreadyDecrypted: 'ℹ️ Selected file(s) are already unencrypted.',
 	encryptSuggestCommandName: 'Encrypt specific file/folder (active profile)',
+	encryptActiveFileCommandName: 'Encrypt active file (active profile)',
 	suggestModalPlaceholder: 'Search file or folder to encrypt...',
 	confirmEncryptTitle: 'Confirm Encryption',
 	confirmEncryptDesc: (count: number, profileName: string) =>
