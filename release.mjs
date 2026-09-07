@@ -4,9 +4,10 @@ import { readFileSync } from 'fs';
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const version = pkg.version;
 
-console.log(`Releasing version ${version}...`);
+console.log(`Building production release for version ${version}...`);
 
 try {
+    execFileSync('npm', ['run', 'build'], { stdio: 'inherit' });
     execFileSync('git', ['add', '.'], { stdio: 'inherit' });
     execFileSync('git', ['commit', '-m', version], { stdio: 'inherit' });
     execFileSync('git', ['tag', version], { stdio: 'inherit' });
@@ -18,3 +19,4 @@ try {
     console.error('Release failed:', error.message);
     process.exit(1);
 }
+
