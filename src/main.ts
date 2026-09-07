@@ -5,6 +5,7 @@ import { obscurePassword, revealPassword } from './crypto/obscure';
 import { RCryptEngine } from './crypto/rcryptEngine';
 import { getText } from './i18n/i18n';
 import { DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
+import { EncryptSuggestModal } from './ui/modals';
 import { RCryptSettingTab } from './ui/settingsTab';
 
 export default class RCryptPlugin extends Plugin {
@@ -33,6 +34,15 @@ export default class RCryptPlugin extends Plugin {
 					this.engine.updateSettings(this.settings);
 				}
 				new Notice(getText().lockVaultNotice || '🧹 Session password & salt cleared from memory.', 5000);
+			},
+		});
+
+		// Register "Encrypt specific file/folder" suggest modal command
+		this.addCommand({
+			id: 'encrypt-file-folder-suggest',
+			name: getText().encryptSuggestCommandName || 'Encrypt specific file/folder (active profile)',
+			callback: () => {
+				new EncryptSuggestModal(this.app, this).open();
 			},
 		});
 

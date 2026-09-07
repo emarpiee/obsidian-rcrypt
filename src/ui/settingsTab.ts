@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
-import { CryptProfile, DEFAULT_PROFILE } from '../types';
+import { CryptProfile, DEFAULT_PROFILE, getFolderEncryptionMode } from '../types';
 
 export class RCryptSettingTab extends PluginSettingTab {
 	plugin: RCryptPlugin;
@@ -191,15 +191,19 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		updateSuffixVisibility();
 
-		// Encrypt Folder Names
+		// Folder Name Encryption
 		new Setting(containerEl)
-			.setName(t.encryptFolderNamesName)
-			.setDesc(t.encryptFolderNamesDesc)
-			.addToggle((toggle) => {
-				toggle.setValue(activeProfile.encryptFolderNames).onChange(async (value) => {
-					activeProfile.encryptFolderNames = value;
-					await this.plugin.saveSettings();
-				});
+			.setName(t.folderEncryptionName || t.encryptFolderNamesName)
+			.setDesc(t.folderEncryptionDesc || t.encryptFolderNamesDesc)
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption('all', t.folderEncryptionAll || 'Target & all subfolders (Recommended)')
+					.addOption('off', t.folderEncryptionOff || 'Off (Files only)')
+					.setValue(getFolderEncryptionMode(activeProfile.encryptFolderNames))
+					.onChange(async (value: string) => {
+						activeProfile.encryptFolderNames = value as 'all' | 'off';
+						await this.plugin.saveSettings();
+					});
 			});
 
 		// --- OTHER OPTIONS SECTION ---

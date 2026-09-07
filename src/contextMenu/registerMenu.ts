@@ -1,8 +1,8 @@
 import { Menu, Notice, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { getText } from '../i18n/i18n';
 import RCryptPlugin from '../main';
-import { CryptProfile } from '../types';
-import { PassphraseModal } from '../ui/modals';
+import { CryptProfile, getFolderEncryptionMode } from '../types';
+import { ConfirmEncryptModal, PassphraseModal } from '../ui/modals';
 
 export function registerContextMenu(plugin: RCryptPlugin): void {
 	plugin.registerEvent(
@@ -182,7 +182,7 @@ function addMenuItems(plugin: RCryptPlugin, menu: Menu, files: TAbstractFile[]):
 	});
 }
 
-async function processItems(
+export async function processItems(
 	plugin: RCryptPlugin,
 	items: TAbstractFile[],
 	action: 'encrypt' | 'decrypt',
@@ -193,27 +193,37 @@ async function processItems(
 	const title = action === 'encrypt' ? t.modalTitleEncrypt(items.length) : t.modalTitleDecrypt(items.length);
 	const targetProfile = profileId ? plugin.engine.getProfileById(profileId) || plugin.engine.getActiveProfile() : plugin.engine.getActiveProfile();
 
-	if (useCustomPrompt || !targetProfile.passphrase) {
-		new PassphraseModal(
-			plugin.app,
-			title,
-			targetProfile.salt,
-			async (res) => {
-				// Store passphrase in RAM for current session
-				targetProfile.passphrase = res.passphrase;
-				const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, targetProfile);
-				return result.successCount > 0 && result.failCount === 0;
-			}
-		).open();
+	const executeAction = async (): Promise<void> => {
+		if (useCustomPrompt || !targetProfile.passphrase) {
+			new PassphraseModal(
+				plugin.app,
+				title,
+				targetProfile.salt,
+				async (res) => {
+					// Store passphrase in RAM for current session
+					targetProfile.passphrase = res.passphrase;
+					const result = await executeBatchAction(plugin, items, action, res.passphrase, res.salt, targetProfile);
+					return result.successCount > 0 && result.failCount === 0;
+				}
+			).open();
+		} else {
+			await executeBatchAction(
+				plugin,
+				items,
+				action,
+				targetProfile.passphrase,
+				targetProfile.salt,
+				targetProfile
+			);
+		}
+	};
+
+	if (action === 'encrypt') {
+		new ConfirmEncryptModal(plugin.app, items, targetProfile, () => {
+			void executeAction();
+		}).open();
 	} else {
-		await executeBatchAction(
-			plugin,
-			items,
-			action,
-			targetProfile.passphrase,
-			targetProfile.salt,
-			targetProfile
-		);
+		await executeAction();
 	}
 }
 
@@ -263,7 +273,7 @@ async function executeBatchAction(
 				);
 
 				if (plugin.settings.autoDeleteSource) {
-					await plugin.app.fileManager.trashFile(file);
+					await plugin.app.vault.delete(file, true);
 				}
 				successCount++;
 			} else {
@@ -310,7 +320,7 @@ async function executeBatchAction(
 					if (existingTarget instanceof TFile) {
 						await plugin.app.vault.modifyBinary(existingTarget, toArrayBuffer(decryptedBytes));
 						if (plugin.settings.autoDeleteSource) {
-							await plugin.app.fileManager.trashFile(file);
+							await plugin.app.vault.delete(file, true);
 						}
 					} else {
 						await plugin.app.vault.createBinary(
@@ -318,7 +328,7 @@ async function executeBatchAction(
 							toArrayBuffer(decryptedBytes)
 						);
 						if (plugin.settings.autoDeleteSource) {
-							await plugin.app.fileManager.trashFile(file);
+							await plugin.app.vault.delete(file, true);
 						}
 					}
 				}
@@ -332,9 +342,19 @@ async function executeBatchAction(
 		}
 	}
 
-	// Rename target folder(s) if encryptFolderNames is enabled
-	if (profile.encryptFolderNames && topFolders.length > 0) {
-		for (const folder of topFolders) {
+	// Rename target folder(s) if folder name encryption is enabled
+	const folderEncMode = getFolderEncryptionMode(profile.encryptFolderNames);
+	if (folderEncMode !== 'off' && topFolders.length > 0) {
+		const foldersToRename: TFolder[] = [];
+		if (folderEncMode === 'all') {
+			for (const topFolder of topFolders) {
+				collectFoldersPostOrder(topFolder, foldersToRename);
+			}
+		} else {
+			foldersToRename.push(...topFolders);
+		}
+
+		for (const folder of foldersToRename) {
 			try {
 				if (action === 'encrypt') {
 					const encFolderName = plugin.engine.encryptName(folder.name, passphrase, salt, profile.id);
@@ -361,7 +381,7 @@ async function executeBatchAction(
 				}
 			} catch (err: unknown) {
 				const msg = err instanceof Error ? err.message : 'Folder rename error';
-				console.error(`Error renaming folder: ${msg}`);
+				console.error(`Error renaming folder ${folder.path}: ${msg}`);
 			}
 		}
 	}
@@ -432,3 +452,13 @@ function isEncryptedFilename(filename: string, configuredSuffix: string, mode: s
 	}
 	return false;
 }
+
+function collectFoldersPostOrder(folder: TFolder, out: TFolder[]): void {
+	for (const child of folder.children) {
+		if (child instanceof TFolder) {
+			collectFoldersPostOrder(child, out);
+		}
+	}
+	out.push(folder);
+}
+

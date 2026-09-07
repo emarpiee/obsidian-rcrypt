@@ -37,6 +37,11 @@ export interface TranslationSchema {
 	encryptedSuffixDesc: string;
 	encryptFolderNamesName: string;
 	encryptFolderNamesDesc: string;
+	folderEncryptionName?: string;
+	folderEncryptionDesc?: string;
+	folderEncryptionAll?: string;
+	folderEncryptionTarget?: string;
+	folderEncryptionOff?: string;
 	autoDeleteSourceName: string;
 	autoDeleteSourceDesc: string;
 
@@ -71,6 +76,17 @@ export interface TranslationSchema {
 	noticeAlreadyEncrypted?: string;
 	noticeAlreadyDecrypted?: string;
 	noticeNoFilesFound?: string;
+
+	// Command & Suggest Modal
+	encryptSuggestCommandName?: string;
+	suggestModalPlaceholder?: string;
+
+	// Confirmation Warning Modal
+	confirmEncryptTitle?: string;
+	confirmEncryptDesc?: (count: number, profileName: string) => string;
+	confirmEncryptWarning?: string;
+	confirmEncryptBtn?: string;
+	cancelBtn?: string;
 }
 
 const en: TranslationSchema = {
@@ -106,8 +122,13 @@ const en: TranslationSchema = {
 	encodingBase64: 'Base64 (URL-safe, case-sensitive)',
 	encryptedSuffixName: 'Encrypted file suffix',
 	encryptedSuffixDesc: 'Extension appended when filename encryption is "Off" (corresponds to --crypt-suffix in rclone).',
-	encryptFolderNamesName: 'Encrypt selected folders',
-	encryptFolderNamesDesc: 'When right-clicking a folder, encrypt/rename the target folder itself in addition to its contents.',
+	encryptFolderNamesName: 'Folder name encryption',
+	encryptFolderNamesDesc: 'Controls whether folder names (target folder and nested subfolders) are encrypted and renamed.',
+	folderEncryptionName: 'Folder name encryption',
+	folderEncryptionDesc: 'Controls whether folder names (target folder and nested subfolders) are encrypted and renamed.',
+	folderEncryptionAll: 'Target & all subfolders (Recommended)',
+	folderEncryptionTarget: 'Target folder only',
+	folderEncryptionOff: 'Off (Files only)',
 	autoDeleteSourceName: 'Auto-delete source file',
 	autoDeleteSourceDesc: 'Automatically delete unencrypted file after successful encryption.',
 
@@ -145,6 +166,15 @@ const en: TranslationSchema = {
 		`💡 Note: Files that failed may have already been decrypted or use different credentials.`,
 	noticeAlreadyEncrypted: 'ℹ️ Selected file(s) are already encrypted.',
 	noticeAlreadyDecrypted: 'ℹ️ Selected file(s) are already unencrypted.',
+	encryptSuggestCommandName: 'Encrypt specific file/folder (active profile)',
+	suggestModalPlaceholder: 'Search file or folder to encrypt...',
+	confirmEncryptTitle: 'Confirm Encryption',
+	confirmEncryptDesc: (count: number, profileName: string) =>
+		`Are you sure you want to encrypt ${count} item${count > 1 ? 's' : ''} using profile "${profileName}"?`,
+	confirmEncryptWarning:
+		'Important: Ensure your passphrase and salt are saved or remembered safely. If auto-delete source is enabled, unencrypted source files will be permanently deleted after encryption.',
+	confirmEncryptBtn: 'Encrypt',
+	cancelBtn: 'Cancel',
 };
 
 const zh: TranslationSchema = {
@@ -173,8 +203,12 @@ const zh: TranslationSchema = {
 	encodingBase64: 'Base64 (URL 安全, 区分大小写)',
 	encryptedSuffixName: '加密文件后缀',
 	encryptedSuffixDesc: '当文件名加密为 "关闭" 时附加的扩展名（对应 rclone 中的 --crypt-suffix）。',
-	encryptFolderNamesName: '加密选中的文件夹',
-	encryptFolderNamesDesc: '右键单击文件夹时，除内容外，还加密/重命名目标文件夹本身。',
+	encryptFolderNamesName: '文件夹名称加密',
+	encryptFolderNamesDesc: '控制在加密目录时是否加密并重命名文件夹名称（目标文件夹及所有嵌套子文件夹）。',
+	folderEncryptionName: '文件夹名称加密',
+	folderEncryptionDesc: '控制在加密目录时是否加密并重命名文件夹名称（目标文件夹及所有嵌套子文件夹）。',
+	folderEncryptionAll: '目标文件夹及所有子文件夹（推荐）',
+	folderEncryptionOff: '关闭（仅加密文件）',
 	autoDeleteSourceName: '自动删除源文件',
 	autoDeleteSourceDesc: '加密成功后自动删除未加密的源文件。',
 
@@ -203,6 +237,13 @@ const zh: TranslationSchema = {
 	noticeEncryptFailed: (count: number, err: string) => `❌ 加密失败 (${count} 个项目)：${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ 解密失败 (${count} 个项目)：${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '加密' : '解密'} 完成但有错误：${success} 成功，${fail} 失败。(${err})`,
+	encryptSuggestCommandName: '加密特定文件/文件夹 (当前配置)',
+	suggestModalPlaceholder: '搜索要加密的文件或文件夹...',
+	confirmEncryptTitle: '确认加密',
+	confirmEncryptDesc: (count: number, profileName: string) => `确定要使用配置 "${profileName}" 加密 ${count} 个项目吗？`,
+	confirmEncryptWarning: '重要提示：请确保妥善保存或记住您的密码和盐。如果启用了自动删除源文件，未加密的源文件将在加密后被永久删除。',
+	confirmEncryptBtn: '加密',
+	cancelBtn: '取消',
 };
 
 const zhTW: TranslationSchema = {
@@ -231,8 +272,12 @@ const zhTW: TranslationSchema = {
 	encodingBase64: 'Base64 (URL 安全, 區分大小寫)',
 	encryptedSuffixName: '加密檔案副檔名',
 	encryptedSuffixDesc: '當檔名加密為 "關閉" 時附加的副檔名（對應 rclone 中的 --crypt-suffix）。',
-	encryptFolderNamesName: '加密選取的資料夾',
-	encryptFolderNamesDesc: '右鍵按一下資料夾時，除內容外，還加密/重新命名目標資料夾本身。',
+	encryptFolderNamesName: '資料夾名稱加密',
+	encryptFolderNamesDesc: '控制在加密目錄時是否加密並重新命名資料夾名稱（目標資料夾及所有巢狀子資料夾）。',
+	folderEncryptionName: '資料夾名稱加密',
+	folderEncryptionDesc: '控制在加密目錄時是否加密並重新命名資料夾名稱（目標資料夾及所有巢狀子資料夾）。',
+	folderEncryptionAll: '目標資料夾及所有子資料夾（推薦）',
+	folderEncryptionOff: '關閉（僅加密檔案）',
 	autoDeleteSourceName: '自動刪除來源檔案',
 	autoDeleteSourceDesc: '加密成功後自動刪除未加密的來源檔案。',
 
@@ -261,6 +306,13 @@ const zhTW: TranslationSchema = {
 	noticeEncryptFailed: (count: number, err: string) => `❌ 加密失敗 (${count} 個項目)：${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ 解密失敗 (${count} 個項目)：${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '加密' : '解密'} 完成但有錯誤：${success} 成功，${fail} 失敗。(${err})`,
+	encryptSuggestCommandName: '加密特定檔案/資料夾 (目前設定檔)',
+	suggestModalPlaceholder: '搜尋要加密的檔案或資料夾...',
+	confirmEncryptTitle: '確認加密',
+	confirmEncryptDesc: (count: number, profileName: string) => `確定要使用設定檔 "${profileName}" 加密 ${count} 個項目嗎？`,
+	confirmEncryptWarning: '重要提示：請確保妥善保存或記住您的密碼與鹽。若啟用了自動刪除來源檔案，未加密的來源檔案將在加密後被永久刪除。',
+	confirmEncryptBtn: '加密',
+	cancelBtn: '取消',
 };
 
 const es: TranslationSchema = {
