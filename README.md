@@ -63,9 +63,9 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
 
 | Component | Implementation | Details |
 | :--- | :--- | :--- |
-| **Key Derivation** | `scrypt` | `N=16384`, `r=8`, `p=1` deriving 64 bytes (`dataKey`: bytes 0–31, `nameKey`: bytes 32–63) using passphrase and salt (defaults to `"rclone"`) |
+| **Key Derivation** | `scrypt` | `N=16384`, `r=8`, `p=1` deriving 80 bytes (`dataKey`: bytes 0–31, `nameKey`: bytes 32–63, `nameTweak`: bytes 64–79) using passphrase and salt (defaults to Rclone 16-byte fixed default salt if salt is empty) |
 | **Payload Cipher** | `NaCl SecretBox` | XSalsa20 stream cipher with Poly1305 MAC tags (16 bytes per 64 KiB block). 8-byte magic header (`RCLONE\x00\x00`) followed by 24-byte base nonce |
-| **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher with `nameKey` & Base32/Base64.<br>**Obfuscate**: Rclone character rotation with 256-bit key.<br>**Off**: Plaintext with optional extension suffix |
+| **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher with `nameKey` & `nameTweak` & Base32/Base64.<br>**Obfuscate**: Rclone character rotation with 256-bit key.<br>**Off**: Plaintext with optional extension suffix |
 | **On-Disk Password Security** | `AES-256-CTR Obscure` | AES-256 in CTR mode using Rclone's internal 256-bit fixed key and 16-byte random IV, serialized as URL-safe unpadded Base64 |
 
 ---
@@ -101,12 +101,13 @@ When **Save password on disk** is enabled, passwords and salts are stored inside
 ## Cryptographic Architecture & How Encryption Works
 
 ### 1. Key Derivation (scrypt)
-From your entered **Password or pass phrase (for encryption)** and **Password or pass phrase (for salt)** (defaulting to `"rclone"` if empty), a 64-byte master key buffer is derived using `scrypt` with parameters:
+From your entered **Password or pass phrase (for encryption)** and **Password or pass phrase (for salt)** (defaulting to Rclone's official 16-byte fixed default salt if empty), an 80-byte master key buffer is derived using `scrypt` with parameters:
 - `N = 16384` (cost factor)
 - `r = 8` (block size)
 - `p = 1` (parallelization)
 - `dataKey`: First 32 bytes (used for file payload encryption)
-- `nameKey`: Second 32 bytes (used for filename encryption)
+- `nameKey`: Second 32 bytes (used for filename EME encryption & obfuscation)
+- `nameTweak`: Final 16 bytes (used for EME tweak cipher initialization)
 
 ### 2. File Payload Encryption (NaCl SecretBox / XSalsa20-Poly1305)
 Every file encrypted by `obsidian-rcrypt` follows Rclone Crypt's binary structure:
