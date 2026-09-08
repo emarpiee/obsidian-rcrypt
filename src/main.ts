@@ -6,6 +6,7 @@ import { RCryptEngine } from './crypto/rcryptEngine';
 import { getText } from './i18n/i18n';
 import { CryptProfile, DEFAULT_PROFILE, DEFAULT_SETTINGS, RCryptSettings } from './types';
 import { EncryptSuggestModal, MappedFolderSuggestModal } from './ui/modals';
+import { RCryptLockView, VIEW_TYPE_RCRYPT } from './ui/rcryptLockView';
 import { RCryptSettingTab } from './ui/settingsTab';
 
 interface AppWithOpenWithDefaultApp extends App {
@@ -82,7 +83,13 @@ export default class RCryptPlugin extends Plugin {
 
 		this.engine = new RCryptEngine(this.settings);
 
-		// Register encrypted file extensions with Obsidian so clicking them opens inside Obsidian workspace instead of OS "Open with..." dialog
+		// Register dummy view for encrypted files to prevent Obsidian from parsing or auto-saving binary ciphertext
+		this.registerView(
+			VIEW_TYPE_RCRYPT,
+			(leaf) => new RCryptLockView(leaf)
+		);
+
+		// Register encrypted file extensions with Obsidian to use RCryptLockView
 		try {
 			const exts = new Set<string>(['rcrypt']);
 			for (const p of this.settings.profiles) {
@@ -91,7 +98,7 @@ export default class RCryptPlugin extends Plugin {
 					exts.add(ext);
 				}
 			}
-			this.registerExtensions(Array.from(exts), 'markdown');
+			this.registerExtensions(Array.from(exts), VIEW_TYPE_RCRYPT);
 		} catch {
 			// Extension already registered or handled
 		}
@@ -232,6 +239,14 @@ export default class RCryptPlugin extends Plugin {
 				if (isEncrypted) {
 					isHandlingFileOpen = true;
 					try {
+						// Immediately detach any leaf that opened this encrypted file to prevent raw text parsing or auto-save corruption
+						this.app.workspace.iterateAllLeaves((leaf) => {
+							const state = leaf.getViewState();
+							if ((state.state as { file?: string })?.file === file.path) {
+								leaf.detach();
+							}
+						});
+
 						// Open decryption modal (always prompt passphrase modal)
 						void processItems(this, [file], 'decrypt', true, activeProfile.id);
 					} finally {

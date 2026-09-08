@@ -79,12 +79,32 @@ export function decryptPayload(
 	}
 
 	// Verify magic header "RCLONE\x00\x00"
+	let isMagicValid = true;
 	for (let i = 0; i < 8; i++) {
 		if (ciphertext[i] !== RCLONE_MAGIC[i]) {
+			isMagicValid = false;
+			break;
+		}
+	}
+
+	if (!isMagicValid) {
+		let containsUtf8Replacement = false;
+		for (let i = 0; i < ciphertext.length - 2; i++) {
+			if (ciphertext[i] === 0xef && ciphertext[i + 1] === 0xbf && ciphertext[i + 2] === 0xbd) {
+				containsUtf8Replacement = true;
+				break;
+			}
+		}
+
+		if (containsUtf8Replacement) {
 			throw new Error(
-				'Invalid Rclone header magic string. File is either not encrypted with Rclone or corrupted.'
+				'Invalid Rclone header magic string. File was corrupted because raw binary ciphertext was opened and saved as text.'
 			);
 		}
+
+		throw new Error(
+			'Invalid Rclone header magic string. File is either not encrypted with Rclone or corrupted.'
+		);
 	}
 
 	const initialNonce = ciphertext.subarray(8, 32);
