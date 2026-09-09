@@ -20,7 +20,7 @@ export class PassphraseModal extends Modal {
 	private salt = '';
 	private customMode: FilenameEncryptionMode = 'standard';
 	private customEncoding: FilenameEncoding = 'base32';
-	private customSuffix = '.rcrypt';
+	private customSuffix = '.bin';
 	private profiles: CryptProfile[];
 	private onSubmit: (result: PassphrasePromptResult) => Promise<boolean> | boolean;
 	private modalTitle: string;
@@ -113,7 +113,7 @@ export class PassphraseModal extends Modal {
 						this.salt = '';
 						this.customMode = 'standard';
 						this.customEncoding = 'base32';
-						this.customSuffix = '.rcrypt';
+						this.customSuffix = '.bin';
 					}
 					if (passInputEl) passInputEl.value = this.passphrase;
 					if (saltInputEl) saltInputEl.value = this.salt;
@@ -199,13 +199,11 @@ export class PassphraseModal extends Modal {
 			let suffixSetting: Setting | undefined;
 
 			const updateModeVisibility = (): void => {
-				const isOff = this.customMode === 'off';
 				if (encodingSetting !== undefined) {
-					encodingSetting.settingEl.style.display = isOff ? 'none' : '';
+					encodingSetting.settingEl.style.display = this.customMode === 'standard' ? '' : 'none';
 				}
 				if (suffixSetting !== undefined) {
-					// Show suffix textbox whenever mode is OFF, or when custom mode is used (for decrypting files created with custom suffix or OFF mode)
-					suffixSetting.settingEl.style.display = isOff ? '' : 'none';
+					suffixSetting.settingEl.style.display = this.customMode === 'off' ? '' : 'none';
 				}
 			};
 
@@ -229,6 +227,7 @@ export class PassphraseModal extends Modal {
 				.addDropdown((d) => {
 					d.addOption('base32', t.encodingBase32);
 					d.addOption('base64', t.encodingBase64);
+					d.addOption('base32768', t.encodingBase32768 || 'Base32768 (Compact UTF-16)');
 					d.setValue(this.customEncoding);
 					d.onChange((val) => {
 						this.customEncoding = val as FilenameEncoding;
@@ -240,7 +239,7 @@ export class PassphraseModal extends Modal {
 				.setDesc(t.encryptedSuffixDesc)
 				.addText((text) => {
 					text.setValue(this.customSuffix);
-					text.setPlaceholder('.rcrypt');
+					text.setPlaceholder('.bin');
 					text.onChange((val) => {
 						this.customSuffix = val;
 					});
@@ -523,7 +522,7 @@ export class ConfirmEncryptModal extends Modal {
 	private customSalt = '';
 	private customMode: FilenameEncryptionMode = 'standard';
 	private customEncoding: FilenameEncoding = 'base32';
-	private customSuffix = '.rcrypt';
+	private customSuffix = '.bin';
 	private onConfirm: (profile: CryptProfile) => void;
 
 	constructor(
@@ -641,12 +640,11 @@ export class ConfirmEncryptModal extends Modal {
 				let suffixSetting: Setting | undefined;
 
 				const updateModeVisibility = (): void => {
-					const isOff = this.customMode === 'off';
 					if (encodingSetting !== undefined) {
-						encodingSetting.settingEl.style.display = isOff ? 'none' : '';
+						encodingSetting.settingEl.style.display = this.customMode === 'standard' ? '' : 'none';
 					}
 					if (suffixSetting !== undefined) {
-						suffixSetting.settingEl.style.display = isOff ? '' : 'none';
+						suffixSetting.settingEl.style.display = this.customMode === 'off' ? '' : 'none';
 					}
 				};
 
@@ -670,6 +668,7 @@ export class ConfirmEncryptModal extends Modal {
 					.addDropdown((d) => {
 						d.addOption('base32', t.encodingBase32);
 						d.addOption('base64', t.encodingBase64);
+						d.addOption('base32768', t.encodingBase32768 || 'Base32768 (Compact UTF-16)');
 						d.setValue(this.customEncoding);
 						d.onChange((val) => {
 							this.customEncoding = val as FilenameEncoding;
@@ -681,7 +680,7 @@ export class ConfirmEncryptModal extends Modal {
 					.setDesc(t.encryptedSuffixDesc)
 					.addText((text) => {
 						text.setValue(this.customSuffix);
-						text.setPlaceholder('.rcrypt');
+						text.setPlaceholder('.bin');
 						text.onChange((val) => {
 							this.customSuffix = val;
 						});
