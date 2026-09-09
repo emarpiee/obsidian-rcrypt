@@ -147,4 +147,63 @@ filename_encoding = base32
 		// Cleanup
 		fs.rmSync(tempDir, { recursive: true, force: true });
 	});
+
+	it('should verify Obsidian <-> Rclone CLI bidirectional integration using base32768 encoding', () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'obsidian-rcrypt-b32768-test-'));
+		const plainDir = path.join(tempDir, 'plain');
+		const encDir = path.join(tempDir, 'encrypted');
+		const configPath = path.join(tempDir, 'temp_rclone.conf');
+
+		fs.mkdirSync(plainDir);
+		fs.mkdirSync(encDir);
+
+		const password = 'Base32768IntegrationTestPass!';
+		const salt = '';
+		const profile: CryptProfile = {
+			...DEFAULT_PROFILE,
+			passphrase: password,
+			salt: salt,
+			filenameEncryptionMode: 'standard',
+			filenameEncoding: 'base32768',
+			encryptedExtension: '.rcrypt',
+		};
+
+		const keys = deriveRcloneKeys(password, salt);
+		const originalFilename = 'Base32768 Spec Test Note.md';
+		const originalText = 'Testing Base32768 encoding compatibility with Rclone CLI.';
+
+		// Encrypt in Obsidian logic
+		const encFilename = encryptFilename(originalFilename, keys, profile.filenameEncryptionMode, profile.filenameEncoding);
+		const encBytes = encryptPayload(new TextEncoder().encode(originalText), keys.dataKey);
+
+		fs.writeFileSync(path.join(encDir, encFilename), encBytes);
+
+		// Create rclone config with filename_encoding = base32768
+		const obscuredPass = execSync(`rclone obscure "${password}"`).toString().trim();
+		const rcloneConfigContent = `
+[local_backend]
+type = alias
+remote = ${encDir}
+
+[rcrypt_remote]
+type = crypt
+remote = local_backend:
+password = ${obscuredPass}
+filename_encryption = standard
+filename_encoding = base32768
+`;
+		fs.writeFileSync(configPath, rcloneConfigContent);
+
+		// Use Rclone CLI to decrypt
+		execSync(`rclone copy --config "${configPath}" rcrypt_remote: "${plainDir}"`);
+
+		const decryptedFiles = fs.readdirSync(plainDir);
+		expect(decryptedFiles).toContain(originalFilename);
+
+		const decryptedContent = fs.readFileSync(path.join(plainDir, originalFilename), 'utf-8');
+		expect(decryptedContent).toBe(originalText);
+
+		// Cleanup
+		fs.rmSync(tempDir, { recursive: true, force: true });
+	});
 });

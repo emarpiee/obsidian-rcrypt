@@ -35,6 +35,7 @@ export interface TranslationSchema {
 	filenameEncodingDesc: string;
 	encodingBase32: string;
 	encodingBase64: string;
+	encodingBase32768?: string;
 	encryptedSuffixName: string;
 	encryptedSuffixDesc: string;
 	encryptFolderNamesName: string;
@@ -130,6 +131,7 @@ const en: TranslationSchema = {
 	filenameEncodingDesc: 'Encoding scheme for encrypted filenames.',
 	encodingBase32: 'Base32 (Standard lowercase)',
 	encodingBase64: 'Base64 (URL-safe base64)',
+	encodingBase32768: 'Base32768 (Compact UTF-16)',
 	encryptedSuffixName: 'Encrypted file suffix',
 	encryptedSuffixDesc: 'File extension appended to encrypted files (e.g. .rcrypt).',
 	encryptFolderNamesName: 'Encrypt folder names',
@@ -210,6 +212,7 @@ const zh: TranslationSchema = {
 	filenameEncodingDesc: '匹配 rclone.conf 中的 filename_encoding 编码',
 	encodingBase32: 'Base32 (标准小写)',
 	encodingBase64: 'Base64 (URL 安全, 区分大小写)',
+	encodingBase32768: 'Base32768 (紧凑 UTF-16)',
 	encryptedSuffixName: '加密文件后缀',
 	encryptedSuffixDesc: '当文件名加密为 "关闭" 时附加的扩展名（对应 rclone 中的 --crypt-suffix）。',
 	encryptFolderNamesName: '文件夹名称加密',
@@ -281,6 +284,7 @@ const zhTW: TranslationSchema = {
 	filenameEncodingDesc: '符合 rclone.conf 中的 filename_encoding 編碼',
 	encodingBase32: 'Base32 (標準小寫)',
 	encodingBase64: 'Base64 (URL 安全, 區分大小寫)',
+	encodingBase32768: 'Base32768 (緊湊 UTF-16)',
 	encryptedSuffixName: '加密檔案副檔名',
 	encryptedSuffixDesc: '當檔名加密為 "關閉" 時附加的副檔名（對應 rclone 中的 --crypt-suffix）。',
 	encryptFolderNamesName: '資料夾名稱加密',
@@ -352,6 +356,7 @@ const es: TranslationSchema = {
 	filenameEncodingDesc: 'Codificación coincidente con filename_encoding en rclone.conf',
 	encodingBase32: 'Base32 (Minusculas estándar)',
 	encodingBase64: 'Base64 (Seguro para URL, sensible a mayúsculas)',
+	encodingBase32768: 'Base32768 (UTF-16 compacto)',
 	encryptedSuffixName: 'Sufijo de archivo cifrado',
 	encryptedSuffixDesc: 'Extensión agregada cuando el cifrado de nombres está desactivado.',
 	encryptFolderNamesName: 'Cifrar carpetas seleccionadas',
@@ -411,6 +416,7 @@ const fr: TranslationSchema = {
 	filenameEncodingDesc: 'Encodage correspondant à filename_encoding dans rclone.conf',
 	encodingBase32: 'Base32 (Minuscules standard)',
 	encodingBase64: 'Base64 (Sécurisé pour URL, sensible à la casse)',
+	encodingBase32768: 'Base32768 (UTF-16 compact)',
 	encryptedSuffixName: 'Suffixe de fichier chiffré',
 	encryptedSuffixDesc: 'Extension ajoutée lorsque le chiffrement des noms est désactivé.',
 	encryptFolderNamesName: 'Chiffrer les dossiers sélectionnés',
@@ -470,6 +476,7 @@ const de: TranslationSchema = {
 	filenameEncodingDesc: 'Kodierung entsprechend filename_encoding in rclone.conf',
 	encodingBase32: 'Base32 (Standard-Kleinbuchstaben)',
 	encodingBase64: 'Base64 (URL-sicher, Groß-/Kleinschreibung)',
+	encodingBase32768: 'Base32768 (Kompaktes UTF-16)',
 	encryptedSuffixName: 'Verschlüsseltes Dateisuffix',
 	encryptedSuffixDesc: 'Endung, die angehängt wird, wenn Dateinamen-Verschlüsselung "Aus" ist.',
 	encryptFolderNamesName: 'Ausgewählte Ordner verschlüsseln',
@@ -529,6 +536,7 @@ const ja: TranslationSchema = {
 	filenameEncodingDesc: 'rclone.conf の filename_encoding に相当するエンコーディング',
 	encodingBase32: 'Base32 (標準小文字)',
 	encodingBase64: 'Base64 (URLセーフ、大文字小文字を区別)',
+	encodingBase32768: 'Base32768 (コンパクトUTF-16)',
 	encryptedSuffixName: '暗号化ファイルのサフィックス',
 	encryptedSuffixDesc: 'ファイル名暗号化が「オフ」の時に追加される拡張子。',
 	encryptFolderNamesName: '選択したフォルダを暗号化',
@@ -588,6 +596,7 @@ const ko: TranslationSchema = {
 	filenameEncodingDesc: 'rclone.conf의 filename_encoding에 해당하는 인코딩',
 	encodingBase32: 'Base32 (표준 소문자)',
 	encodingBase64: 'Base64 (URL 안전, 대소문자 구분)',
+	encodingBase32768: 'Base32768 (압축 UTF-16)',
 	encryptedSuffixName: '암호화된 파일 접미사',
 	encryptedSuffixDesc: '파일명 암호화가 "끄기"일 때 추가되는 확장자입니다.',
 	encryptFolderNamesName: '선택한 폴더 암호화',
@@ -647,6 +656,7 @@ const ru: TranslationSchema = {
 	filenameEncodingDesc: 'Кодировка, соответствующая filename_encoding в rclone.conf',
 	encodingBase32: 'Base32 (Стандартный нижний регистр)',
 	encodingBase64: 'Base64 (URL-безопасный, с учетом регистра)',
+	encodingBase32768: 'Base32768 (Компактный UTF-16)',
 	encryptedSuffixName: 'Суффикс зашифрованного файла',
 	encryptedSuffixDesc: 'Расширение, добавляемое при отключенном шифровании имен файлов.',
 	encryptFolderNamesName: 'Шифровать выбранные папки',

@@ -53,7 +53,7 @@ npm run build
 1. Open **Obsidian Settings** $\rightarrow$ **RCrypt**.
 2. Create or select a **Crypt Profile**.
 3. Set your **Passphrase** and **Salt** (corresponding to `password` and `password2` in `rclone.conf`).
-4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32` or `Base64`).
+4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32`, `Base64`, or `Base32768`).
 
 ### 2. Basic Encryption & Decryption
 - **Context Menu**: Right-click any file, selection of files, or folder in the Obsidian File Explorer and choose **Encrypt** or **Decrypt**.
@@ -82,7 +82,7 @@ npm run build
 | :--- | :--- | :--- |
 | **Key Derivation** | `scrypt` | Derives an 80-byte key buffer (`N=16384`, `r=8`, `p=1`). Split into `dataKey` (bytes 0–31), `nameKey` (bytes 32–63), and `nameTweak` (bytes 64–79). Defaults to Rclone's 16-byte fixed default salt if empty. |
 | **Payload Cipher** | `NaCl SecretBox` | XSalsa20 stream cipher with Poly1305 MAC tags (16 bytes per 64 KiB block). Prefixed by an 8-byte magic header (`RCLONE\x00\x00`) and a 24-byte base nonce. |
-| **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher padded with PKCS#7 using `nameKey` & `nameTweak` (Base32/Base64).<br>**Obfuscate**: Rclone character-rotation cipher.<br>**Off**: Plaintext with optional extension suffix. |
+| **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher padded with PKCS#7 using `nameKey` & `nameTweak` (`Base32`, `Base64`, or `Base32768`).<br>**Obfuscate**: Rclone character-rotation cipher.<br>**Off**: Plaintext with optional extension suffix. |
 | **Multi-Layer Encryption** | `Multi-Pass XSalsa20` | Recursive byte-level payload wrapping matching Rclone CLI. Smart byte inspection detects inner `RCLONE\x00\x00` headers post-decryption. |
 | **On-Disk Credential Store** | `AES-256-CTR Obscure` | AES-256 in CTR mode using Rclone's internal fixed 256-bit key and random 16-byte IV (Base64 URL-safe). |
 
@@ -112,6 +112,23 @@ npm run build
 
 ---
 
+### Filename Encryption Modes & Encoding Compatibility
+
+In Rclone Crypt standard, **Filename Encryption Mode** (`filename_encryption`) and **Filename Encoding** (`filename_encoding`) are separate configurations with specific compatibility rules:
+
+| Filename Encryption Mode | Supports `filename_encoding`? | Description |
+| :--- | :--- | :--- |
+| **`standard`** | **YES** (`base32`, `base64`, `base32768`) | Encrypts filename bytes using AES-256 EME wide-block cipher. **Requires an encoding scheme** to convert binary bytes into a string filename. |
+| **`obfuscate`** | **NO** *(Ignored by Rclone CLI)* | Applies lightweight character rotation (`cipher.obfuscateSegment`). Operates directly on string characters, so byte encoding does not apply. |
+| **`off`** | **NO** *(Ignored by Rclone CLI)* | Leaves filenames in plaintext (appends a suffix such as `.rcrypt` or `.bin`). |
+
+#### Available Filename Encodings (Used when Mode = `standard`):
+- **`base32`** *(Default)*: Unpadded Extended Hex Base32 (`0123456789abcdefghijklmnopqrstuv`). Works across all cloud remotes and local filesystems.
+- **`base64`**: URL-safe unpadded Base64 (`-` and `_`). Best for case-sensitive cloud backends (Google Drive, S3).
+- **`base32768`**: Compact UTF-16 Base32768 encoding. Significantly reduces filename length on cloud backends counting UTF-16 characters (OneDrive, Dropbox, Box).
+
+---
+
 ## Rclone CLI Compatibility
 
 Files encrypted in RCrypt can be accessed or mounted directly using the official Rclone CLI by setting up a matching `crypt` remote in your `rclone.conf`:
@@ -123,7 +140,7 @@ remote = <path_to_vault_or_underlying_remote>
 password = <your_obscured_passphrase>
 password2 = <your_obscured_salt>
 filename_encryption = <match_profile: standard | obfuscate | off>
-filename_encoding = <match_profile: base32 | base64>
+filename_encoding = <match_profile: base32 | base64 | base32768 (only applies when filename_encryption = standard)>
 ```
 
 > [!IMPORTANT]
@@ -136,7 +153,7 @@ filename_encoding = <match_profile: base32 | base64>
 > | **Passphrase** | `password` | Obscured string (`rclone obscure <passphrase>`) |
 > | **Salt** | `password2` | Obscured string (`rclone obscure <salt>`) |
 > | **Filename Encryption Mode** | `filename_encryption` | `standard`, `obfuscate`, or `off` |
-> | **Filename Encoding** | `filename_encoding` | `base32` or `base64` |
+> | **Filename Encoding** | `filename_encoding` | `base32`, `base64`, or `base32768` *(only used when `filename_encryption = standard`)* |
 
 ### Official References & Resources
 - [Rclone Crypt Documentation](https://rclone.org/crypt/) — Official configuration overview and CLI usage.

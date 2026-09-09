@@ -2,8 +2,10 @@ import { CryptoKeys, FilenameEncoding, FilenameEncryptionMode } from '../types';
 import { EMECipher } from './eme';
 import {
 	decodeBase32,
+	decodeBase32768,
 	decodeBase64URL,
 	encodeBase32,
+	encodeBase32768,
 	encodeBase64URL,
 } from './encoders';
 
@@ -223,6 +225,8 @@ function encodeFilenameBytes(
 	switch (encoding) {
 		case 'base64':
 			return encodeBase64URL(data);
+		case 'base32768':
+			return encodeBase32768(data);
 		case 'base32':
 		default:
 			return encodeBase32(data);
@@ -236,6 +240,8 @@ function decodeFilenameBytes(
 	switch (encoding) {
 		case 'base64':
 			return decodeBase64URL(str);
+		case 'base32768':
+			return decodeBase32768(str);
 		case 'base32':
 		default:
 			return decodeBase32(str);

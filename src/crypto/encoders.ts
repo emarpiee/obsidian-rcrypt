@@ -1,3 +1,5 @@
+import { decode as decodeB32768, encode as encodeB32768 } from 'base32768';
+
 // Official Rclone Crypt Base32 encoding (Extended Hex Alphabet "0123456789abcdefghijklmnopqrstuv" unpadded)
 const BASE32_HEX_ALPHABET = '0123456789abcdefghijklmnopqrstuv';
 
@@ -71,4 +73,12 @@ export function decodeBase64URL(str: string): Uint8Array {
 		return bytes;
 	}
 	return new Uint8Array(Buffer.from(base64, 'base64'));
+}
+
+export function encodeBase32768(data: Uint8Array): string {
+	return encodeB32768(data);
+}
+
+export function decodeBase32768(str: string): Uint8Array {
+	return decodeB32768(str);
 }

@@ -1,7 +1,7 @@
 import { Menu } from 'obsidian';
 
 export type FilenameEncryptionMode = 'standard' | 'obfuscate' | 'off';
-export type FilenameEncoding = 'base32' | 'base64';
+export type FilenameEncoding = 'base32' | 'base64' | 'base32768';
 export type FolderEncryptionMode = 'all' | 'off';
 
 declare module 'obsidian' {

@@ -175,9 +175,10 @@ export class RCryptSettingTab extends PluginSettingTab {
 				dropdown
 					.addOption('base32', t.encodingBase32)
 					.addOption('base64', t.encodingBase64)
+					.addOption('base32768', t.encodingBase32768 || 'Base32768 (Compact UTF-16)')
 					.setValue(activeProfile.filenameEncoding)
 					.onChange(async (value: string) => {
-						activeProfile.filenameEncoding = value as 'base32' | 'base64';
+						activeProfile.filenameEncoding = value as 'base32' | 'base64' | 'base32768';
 						await this.plugin.saveSettings();
 					});
 			});
@@ -197,9 +198,11 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		const updateModeVisibility = (): void => {
-			const isOff = activeProfile.filenameEncryptionMode === 'off';
-			encodingSetting.settingEl.style.display = isOff ? 'none' : '';
-			suffixSetting.settingEl.style.display = isOff ? '' : 'none';
+			const mode = activeProfile.filenameEncryptionMode;
+			// Filename encoding only applies to Standard EME encryption mode
+			encodingSetting.settingEl.style.display = mode === 'standard' ? '' : 'none';
+			// Suffix setting only applies when filename encryption mode is off
+			suffixSetting.settingEl.style.display = mode === 'off' ? '' : 'none';
 		};
 
 		updateModeVisibility();

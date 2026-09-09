@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deriveRcloneKeys } from '../src/crypto/kdf';
 import { decryptPayload, encryptPayload } from '../src/crypto/payloadEngine';
 import { decryptFilename, encryptFilename } from '../src/crypto/filenameEngine';
-import { decodeBase32, decodeBase64URL, encodeBase32, encodeBase64URL } from '../src/crypto/encoders';
+import { decodeBase32, decodeBase32768, decodeBase64URL, encodeBase32, encodeBase32768, encodeBase64URL } from '../src/crypto/encoders';
 import { obscurePassword, revealPassword } from '../src/crypto/obscure';
 import { CryptProfile, DEFAULT_PROFILE } from '../src/types';
 
@@ -47,7 +47,7 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		expect(decryptedText).toBe(originalText);
 	});
 
-	it('should test Base32 and Base64 encoders round-trip', () => {
+	it('should test Base32, Base64, and Base32768 encoders round-trip', () => {
 		const sample = new Uint8Array([1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 255]);
 
 		const b32Enc = encodeBase32(sample);
@@ -57,6 +57,10 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		const b64Enc = encodeBase64URL(sample);
 		const b64Dec = decodeBase64URL(b64Enc);
 		expect(b64Dec).toEqual(sample);
+
+		const b32768Enc = encodeBase32768(sample);
+		const b32768Dec = decodeBase32768(b32768Enc);
+		expect(b32768Dec).toEqual(sample);
 	});
 
 	it('should encrypt and decrypt filenames with obfuscate mode', () => {
@@ -72,6 +76,11 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		const encB64 = encryptFilename(originalFilename, keys, 'obfuscate', 'base64');
 		const decB64 = decryptFilename(encB64, keys, 'obfuscate', 'base64');
 		expect(decB64).toBe(originalFilename);
+
+		// Base32768
+		const encB32768 = encryptFilename(originalFilename, keys, 'obfuscate', 'base32768');
+		const decB32768 = decryptFilename(encB32768, keys, 'obfuscate', 'base32768');
+		expect(decB32768).toBe(originalFilename);
 	});
 
 	it('should encrypt and decrypt filenames with standard EME mode', () => {
@@ -87,6 +96,11 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		const encEME64 = encryptFilename(originalFilename, keys, 'standard', 'base64');
 		const decEME64 = decryptFilename(encEME64, keys, 'standard', 'base64');
 		expect(decEME64).toBe(originalFilename);
+
+		// Standard EME Base32768
+		const encEME32768 = encryptFilename(originalFilename, keys, 'standard', 'base32768');
+		const decEME32768 = decryptFilename(encEME32768, keys, 'standard', 'base32768');
+		expect(decEME32768).toBe(originalFilename);
 	});
 
 	it('should support nested (double) encryption and two-stage decryption', () => {
