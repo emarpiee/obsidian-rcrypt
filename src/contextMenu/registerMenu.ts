@@ -512,14 +512,6 @@ function getEffectiveSuffix(configuredSuffix: string, mode: string): string {
 	return configuredSuffix || '.bin';
 }
 
-function isEncryptedFilename(filename: string, configuredSuffix: string, mode: string): boolean {
-	if (mode === 'off') {
-		const suffix = getEffectiveSuffix(configuredSuffix, mode);
-		return suffix ? filename.endsWith(suffix) : false;
-	}
-	return false;
-}
-
 function collectFoldersPostOrder(folder: TFolder, out: TFolder[]): void {
 	for (const child of folder.children) {
 		if (child instanceof TFolder) {

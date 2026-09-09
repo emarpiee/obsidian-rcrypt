@@ -50,7 +50,7 @@ npm run build
 ## Usage Guide
 
 ### 1. Profile Configuration
-1. Open **Obsidian Settings** $\rightarrow$ **Rclone Crypt**.
+1. Open **Obsidian Settings** $\rightarrow$ **RCrypt**.
 2. Create or select a **Crypt Profile**.
 3. Set your **Passphrase** and **Salt** (corresponding to `password` and `password2` in `rclone.conf`).
 4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32` or `Base64`).
