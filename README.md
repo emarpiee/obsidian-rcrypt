@@ -1,199 +1,128 @@
-> [!NOTE]
-WORK IN PROGRESS
-
 # Obsidian RCrypt
 
-Client-side file and folder encryption for [Obsidian](https://obsidian.md), fully compatible with official [Rclone Crypt](https://rclone.org/crypt/).
+Client-side file and folder encryption for [Obsidian](https://obsidian.md), fully compatible with the official [Rclone Crypt](https://rclone.org/crypt/) standard.
 
-`obsidian-rcrypt` runs 100% offline using standard web cryptography primitives (`@noble/ciphers` and `@noble/hashes`). It requires no local `rclone` binary installation and runs on desktop and mobile platforms (Android, iOS, macOS, Windows, Linux).
+`obsidian-rcrypt` runs 100% offline using pure web cryptography primitives (`@noble/ciphers` and `@noble/hashes`). It requires no local `rclone` binary installation and operates seamlessly across desktop and mobile platforms (Android, iOS, macOS, Windows, Linux).
 
 ---
 
-## Features
+## Key Features
 
-- **Rclone 1:1 Compatibility**: Files encrypted inside Obsidian can be mounted or extracted directly with Rclone CLI (`rclone cat`, `rclone mount`, `rclone copy`).
-- **Crypt Profile Manager**: Create and manage multiple profiles with distinct passphrases, salts, filename encryption modes, and encodings.
-- **Dynamic Command Palette Integration**: Commands dynamically format with active profile names (e.g. `Encrypt specific file/folder (Standard)`) and update automatically when active profiles change.
-- **Interactive Modals & Previews**: Live file/folder tree preview in passphrase modals, dynamic password visibility toggles, and context-sensitive profile configurations.
-- **Native Context Submenus**: Right-click notes, media, or folders to encrypt/decrypt using the active profile, a specific profile, or custom credentials.
-- **Filename Encryption Modes**:
-  - **Standard** (AES-256-EME with PKCS#7 padding)
-  - **Obfuscate** (Rclone character-rotation cipher)
-  - **Off** (Plaintext filenames with optional file extension suffix)
-- **Nested (Multi-Layer) Encryption**: Encrypt already-encrypted files with different or matching profiles (e.g. an inner private profile + an outer secondary profile). Features smart post-decryption detection that notifies you whenever an inner encryption layer remains.
-- **Automatic Fallback & Decoupled Decryption**: Decryption handles unencrypted/already decrypted files in bulk operations and automatically strips suffixes based on file type.
-- **Internationalization (i18n)**: Multilingual UI support across 10 languages with automatic locale matching and RTL language handling.
+- **1:1 Rclone Interoperability**: Encrypt files inside Obsidian and decrypt or mount them directly using the official Rclone CLI (`rclone cat`, `rclone mount`, `rclone copy`).
+- **Crypt Profile Management**: Configure multiple encryption profiles with custom passphrases, salts, filename encryption modes, and encodings.
+- **Context Menu & Palette Integration**: Right-click notes, attachments, or entire folders to encrypt or decrypt. Commands dynamically update based on your active profile.
+- **Flexible Filename Modes**: Supports **Standard** (AES-256-EME), **Obfuscate** (Rclone character rotation), and **Off** (plaintext filenames with optional extension suffix).
+- **Nested (Multi-Layer) Encryption**: Encrypt already-encrypted files recursively using different or matching profiles. Features smart payload byte inspection to notify you when inner encryption layers remain upon decryption.
+- **RAM-Only Security & i18n**: Keeps credentials strictly in volatile memory by default. Fully localized across 11 languages with automatic RTL support.
 
 ---
 
 ## Installation
 
-### Option 1: Via BRAT (Recommended for pre-releases)
-1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian-42-brat) in Obsidian (**Settings** -> **Community plugins** -> **Search for "BRAT"**).
+### Option 1: Via BRAT (Recommended for Pre-releases)
+1. Install [BRAT](https://github.com/TfTHacker/obsidian-42-brat) in Obsidian (**Settings** $\rightarrow$ **Community plugins** $\rightarrow$ Search **BRAT**).
 2. Open BRAT settings and click **Add Beta plugin**.
 3. Enter repository URL: `https://github.com/emarpiee/obsidian-rcrypt`
-4. Click **Add Plugin** and enable **RCrypt** in Obsidian's Community Plugins list.
+4. Click **Add Plugin** and enable **RCrypt** in your Community Plugins list.
 
 ### Option 2: Manual Installation
 1. Download `main.js`, `manifest.json`, and `styles.css` (if available) from the latest [GitHub Release](https://github.com/emarpiee/obsidian-rcrypt/releases).
-2. Create a directory named `obsidian-rcrypt` inside your vault's plugins folder (`<vault>/.obsidian/plugins/obsidian-rcrypt/`).
-3. Move the downloaded files into `<vault>/.obsidian/plugins/obsidian-rcrypt/`.
-4. Reload Obsidian and enable **RCrypt** under **Settings** -> **Community plugins**.
+2. Create directory `<vault>/.obsidian/plugins/obsidian-rcrypt/`.
+3. Move the downloaded release files into `<vault>/.obsidian/plugins/obsidian-rcrypt/`.
+4. Reload Obsidian and enable **RCrypt** under **Settings** $\rightarrow$ **Community plugins**.
 
-### Option 3: Building from Source
-1. Clone the repository into your vault's plugins folder:
-   ```bash
-   cd /path/to/your/vault/.obsidian/plugins/
-   git clone https://github.com/emarpiee/obsidian-rcrypt.git
-   cd obsidian-rcrypt
-   ```
-2. Install dependencies & build:
-   ```bash
-   npm install
-   npm run build
-   ```
-3. Run the health check before submitting pull requests:
-   ```bash
-   npm run health
-   ```
-4. Enable the plugin under **Settings** -> **Community plugins**.
+### Option 3: Build from Source
+```bash
+cd /path/to/vault/.obsidian/plugins/
+git clone https://github.com/emarpiee/obsidian-rcrypt.git
+cd obsidian-rcrypt
+npm install
+npm run build
+```
 
 ---
 
-## Technical Specifications
+## Usage Guide
 
-| Component | Implementation | Details |
-| :--- | :--- | :--- |
-| **Key Derivation** | `scrypt` | `N=16384`, `r=8`, `p=1` deriving 80 bytes (`dataKey`: bytes 0–31, `nameKey`: bytes 32–63, `nameTweak`: bytes 64–79) using passphrase and salt (defaults to Rclone 16-byte fixed default salt if salt is empty) |
-| **Payload Cipher** | `NaCl SecretBox` | XSalsa20 stream cipher with Poly1305 MAC tags (16 bytes per 64 KiB block). 8-byte magic header (`RCLONE\x00\x00`) followed by 24-byte base nonce |
-| **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher with `nameKey` & `nameTweak` & Base32/Base64.<br>**Obfuscate**: Rclone character rotation with 256-bit key.<br>**Off**: Plaintext with optional extension suffix |
-| **Nested Encryption** | `Multi-Pass XSalsa20` | Full 1:1 Rclone support for multi-pass binary payload encryption. Features smart output byte inspection for `RCLONE\x00\x00` magic header |
-| **On-Disk Password Security** | `AES-256-CTR Obscure` | AES-256 in CTR mode using Rclone's internal 256-bit fixed key and 16-byte random IV, serialized as URL-safe unpadded Base64 |
+### 1. Profile Configuration
+1. Open **Obsidian Settings** $\rightarrow$ **Rclone Crypt**.
+2. Create or select a **Crypt Profile**.
+3. Set your **Passphrase** and **Salt** (corresponding to `password` and `password2` in `rclone.conf`).
+4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32` or `Base64`).
 
----
-
-> [!WARNING]
-> **Use at your own risk!**
-> - **Data Loss Risk**: Encrypting files modifies their raw contents on disk. If you forget your password or salt, or if your credentials are misconfigured, your encrypted data **cannot** be recovered by anyone. Always maintain unencrypted backups of critical notes before encrypting.
-> - **Nested Encryption Credentials**: When using nested (multi-layer) encryption, you **must** remember the exact sequence of passphrases/salts used. Decryption must be executed in reverse order (Outer $\rightarrow$ Inner). Losing credentials for *any* layer permanently locks all inner contents.
-> - **Obscured On-Disk Storage**: Enabling "Save password on disk" stores your obscured password in `data.json`. While obscured from direct text viewing, anyone with local read access to your `data.json` can reverse the official Rclone key to retrieve your plaintext password.
-> - **RAM Memory Exposure**: When "Save password on disk" is disabled, passwords reside in RAM during your Obsidian session. Memory-dump attacks or unauthorized local processes with process-memory read permissions could inspect process RAM.
-> - **Third-Party Sync Plugins**: If you sync your vault using third-party plugins or cloud storage services (Git, iCloud, Obsidian Sync), ensure you understand whether you are syncing unencrypted source files or encrypted files.
-> - **Limitation of Liability**: The developer(s) of this plugin accept no legal responsibility or liability for any data loss, corruption, security breach, unauthorized access, or any consequences resulting from your use or misuse of this software. You are solely responsible for managing your credentials and backing up your data.
-> - **No Warranty**: This software is provided "as is" without warranty of any kind, express or implied, under the MIT License.
-
-### How On-Disk Password Storage Works (`data.json`)
-When **Save password on disk** is enabled, passwords and salts are stored inside the plugin's `data.json` file in an encrypted/obscured format:
-- **Encryption Scheme**: Implements Rclone's official `rclone obscure` algorithm.
-- **Cipher Details**: The plaintext password or salt is encrypted using **AES-256 in Counter (CTR) mode** initialized with a 16-byte cryptographically secure random Initialization Vector (`IV`) generated per write operation.
-- **Obscure Key**: Uses Rclone's internal fixed 256-bit key (`9c 93 5b 48 73 0a 55 4d 6b 5b 2b 32 7b 92 5c 7b ...`).
-- **Formatting**: The 16-byte `IV` is prepended to the ciphertext, and the resulting payload is Base64 encoded (URL-safe, without trailing `=` padding).
-- **Interoperability**: Passwords obscured by `obsidian-rcrypt` can be directly decoded using standard Rclone credential parameters and vice-versa.
-
-> [!NOTE]
-> While on-disk storage is encrypted/obscured so passwords cannot be read directly in plaintext by eye or simple text scrapers, any process or user with access to your `data.json` and the open-source Rclone key can reveal them. For maximum security, disable **Save password on disk** to use RAM-Only mode.
-
-### RAM-Only Session Mode (Recommended)
-- **Zero Disk Footprint**: When **Save password on disk** is disabled, both the **Password or pass phrase (for encryption)** and **Password or pass phrase (for salt)** remain strictly in volatile memory (RAM) during your active session.
-- **Disk Wiping**: `data.json` retains an empty string `""` for credentials.
-- **Automatic Session Purge**: Credentials in memory are automatically discarded when Obsidian closes, restarts, or unloads the plugin.
-- **Manual Purge Command**: Run **Clear session password & salt from memory** from the Obsidian Command Palette (`Ctrl/Cmd + P`) at any time to immediately wipe all in-memory passwords and salts.
-
----
-
-## Cryptographic Architecture & How Encryption Works
-
-### 1. Key Derivation (scrypt)
-From your entered **Password or pass phrase (for encryption)** and **Password or pass phrase (for salt)** (defaulting to Rclone's official 16-byte fixed default salt if empty), an 80-byte master key buffer is derived using `scrypt` with parameters:
-- `N = 16384` (cost factor)
-- `r = 8` (block size)
-- `p = 1` (parallelization)
-- `dataKey`: First 32 bytes (used for file payload encryption)
-- `nameKey`: Second 32 bytes (used for filename EME encryption & obfuscation)
-- `nameTweak`: Final 16 bytes (used for EME tweak cipher initialization)
-
-### 2. File Payload Encryption (NaCl SecretBox / XSalsa20-Poly1305)
-Every file encrypted by `obsidian-rcrypt` follows Rclone Crypt's binary structure:
-1. **Header**: 8-byte magic header (`RCLONE\x00\x00`) + 24-byte random base `nonce`.
-2. **Chunking**: The file plaintext is divided into 64 KiB (65,536 bytes) data blocks.
-3. **Block Nonce & Cipher**: Each 64 KiB block is encrypted using `XSalsa20` with a nonce derived by incrementing the base nonce by block index, and authenticated with a 16-byte `Poly1305` MAC tag.
-4. **Result**: Each encrypted 64 KiB block produces 65,552 bytes of ciphertext on disk.
-
-### 3. Filename Encryption Modes
-- **Standard (AES-256 EME Wide-Block Cipher)**:
-  - Filenames are padded with PKCS#7 to a multiple of 16 bytes.
-  - Encrypted with AES-256-EME (Encrypt-Mix-Encrypt wide-block mode) using `nameKey`.
-  - Encoded to string using **Base32** (Rclone default unpadded lowercase) or **Base64** (URL-safe unpadded).
-- **Obfuscate (Character Rotation)**:
-  - A lightweight 256-bit key-based character rotation cipher designed by Rclone to obscure filenames while preserving file length and readable extensions.
-- **Off**:
-  - Filenames remain in plain unencrypted text with an optional append suffix (e.g. `.rcrypt`).
-
-> [!NOTE]
-> **Independent Content & Filename Decryption (Rclone Design Standard)**:
-> In Rclone Crypt, key derivation derives two separate keys: `dataKey` (for file payload encryption) and `nameKey` (for filename encryption). Because payload decryption relies solely on `dataKey` derived from your passphrase and salt, file contents will successfully unlock whenever the passphrase and salt are correct—even if the Filename Encryption Mode or Filename Encoding is misconfigured. In such cases, the payload content decrypts properly, but the resulting filename or extension may appear scrambled until decrypted with matching filename settings.
-
-### 4. Nested (Multi-Layer) Encryption
-
-`obsidian-rcrypt` natively supports multi-layer nested encryption, matching Rclone CLI's ability to layer `crypt` remotes over other `crypt` remotes.
-
-- **Payload Layering**: Each encryption pass generates a fresh 24-byte base nonce and XSalsa20 stream cipher block. Encrypting an already-encrypted file wraps the inner `RCLONE\x00\x00` ciphertext payload inside a new outer Rclone binary block.
-- **Smart Inner Layer Detection**: When decrypting an outer layer, `obsidian-rcrypt` automatically inspects the decrypted output bytes. If the output payload still contains an `RCLONE\x00\x00` magic header, the plugin displays a notification informing you that an inner encryption layer remains.
-
-> [!TIP]
-> **Nested Encryption Use Cases**:
-> - **Tiered Access Control**: Encrypt sensitive notes with an Inner Profile, then re-encrypt with an Outer Profile for secondary backup or multi-key protection.
-> - **Metadata & Structure Hiding**: Use `Standard` filename encryption on the outer layer to scramble folder/filename structure, over an `Off` or `Obfuscate` inner layer.
-
-> [!WARNING]
-> **Key & Order Dependencies**:
-> - **Reverse Decryption Order**: You must decrypt layers in reverse order (Outer Pass $\rightarrow$ Inner Pass) using the exact profile credentials for each respective layer.
-> - **Credential Risk**: Losing credentials for *any* layer in the chain permanently locks all underlying data inside that layer.
-
----
-
-## Usage
-
-### 1. Configure Crypt Profiles
-1. Go to **Obsidian Settings** -> **Rclone Crypt**.
-2. Select or create a **Crypt Profile**.
-3. Enter your **Password or pass phrase (for encryption)** and **Password or pass phrase (for salt)** (corresponding to `password` and `password2` in your Rclone configuration).
-4. (Optional) Toggle **Save password on disk**. Leave disabled for maximum security.
-5. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32` or `Base64`).
-
-### 2. Encrypt & Decrypt via Context Menu
-- Right-click any file, selection of files, or folder in Obsidian File Explorer.
-- Open **Encrypt file** or **Decrypt file** from the context menu.
-- Choose your target profile or select **Encrypt with custom passphrase...** to enter one-time credentials.
+### 2. Basic Encryption & Decryption
+- **Context Menu**: Right-click any file, selection of files, or folder in the Obsidian File Explorer and choose **Encrypt** or **Decrypt**.
+- **Command Palette**: Press `Ctrl/Cmd + P` and search for **RCrypt** commands to process active files or specific paths.
 
 ### 3. Nested (Multi-Layer) Encryption Workflow
-- **Adding Outer Encryption**: To encrypt an already-encrypted file or folder a second time, right-click the file and select **Encrypt file**. Select your outer profile or enter custom credentials.
-- **Unwrapping Outer Layer**: Right-click the double-encrypted file and select **Decrypt file** using the outer profile credentials.
-- **Smart Inner Layer Detection**: Upon successful outer decryption, `obsidian-rcrypt` will display:
+- **Adding Outer Layers**: Right-click an already-encrypted file or folder and select **Encrypt**. Choose an outer profile or enter custom credentials.
+- **Unwrapping Outer Layer**: Right-click the multi-layer file and select **Decrypt** using the outer profile's credentials.
+- **Inner Layer Detection**: Upon decrypting the outer layer, `obsidian-rcrypt` inspects output bytes and alerts you:
   > 🔓 *Decrypted outer layer for 1 item(s). Inner encryption layer detected!*
-- **Unwrapping Inner Layer**: Right-click the remaining file and select **Decrypt file** using the inner profile credentials to restore the original plaintext.
+- **Unwrapping Inner Layer**: Right-click the remaining file and select **Decrypt** using the inner profile's credentials to restore plaintext.
+
+> [!TIP]
+> **Use Cases for Multi-Layer Encryption**:
+> - **Tiered Access Control**: Apply a private inner passphrase for confidential notes, then wrap with a secondary outer profile for backup or secondary protection.
+> - **Metadata Obfuscation**: Wrap files encrypted with `Off` or `Obfuscate` mode inside an outer `Standard` profile to scramble directory structure and extensions.
 
 > [!CAUTION]
-> **Avoid Incompatible Operations During Multi-Pass Encryption**:
-> - Ensure you do not modify raw binary ciphertext manually between encryption/decryption passes (e.g., opening and saving raw binary in text editors), as this corrupts binary header structures (`RCLONE\x00\x00`).
+> Avoid opening or modifying raw binary ciphertext files in text editors between passes, as text conversion corrupts binary header structures (`RCLONE\x00\x00`).
+
+---
+
+## Cryptographic Architecture
+
+| Primitive / Component | Implementation | Technical Standard & Parameters |
+| :--- | :--- | :--- |
+| **Key Derivation** | `scrypt` | Derives an 80-byte key buffer (`N=16384`, `r=8`, `p=1`). Split into `dataKey` (bytes 0–31), `nameKey` (bytes 32–63), and `nameTweak` (bytes 64–79). Defaults to Rclone's 16-byte fixed default salt if empty. |
+| **Payload Cipher** | `NaCl SecretBox` | XSalsa20 stream cipher with Poly1305 MAC tags (16 bytes per 64 KiB block). Prefixed by an 8-byte magic header (`RCLONE\x00\x00`) and a 24-byte base nonce. |
+| **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher padded with PKCS#7 using `nameKey` & `nameTweak` (Base32/Base64).<br>**Obfuscate**: Rclone character-rotation cipher.<br>**Off**: Plaintext with optional extension suffix. |
+| **Multi-Layer Encryption** | `Multi-Pass XSalsa20` | Recursive byte-level payload wrapping matching Rclone CLI. Smart byte inspection detects inner `RCLONE\x00\x00` headers post-decryption. |
+| **On-Disk Credential Store** | `AES-256-CTR Obscure` | AES-256 in CTR mode using Rclone's internal fixed 256-bit key and random 16-byte IV (Base64 URL-safe). |
+
+> [!NOTE]
+> **Independent Content & Filename Decryption**:
+> Key derivation produces separate `dataKey` (payload) and `nameKey` (filename) buffers. File content unlocks whenever the passphrase and salt are correct—even if filename mode or encoding settings are mismatched. (Mismatched filename settings only cause the output file extension or filename to appear scrambled).
+
+---
+
+## Security Model & Disclaimers
+
+### RAM-Only Session Storage (Recommended)
+- **Zero Disk Footprint**: When **Save password on disk** is disabled, passphrases and salts reside strictly in volatile memory (RAM).
+- **Automatic Purge**: Credentials in RAM are automatically wiped when Obsidian closes, restarts, or unloads the plugin.
+- **Manual Purge**: Execute **Clear session password & salt from memory** from the Command Palette (`Ctrl/Cmd + P`) to wipe credentials instantly.
+
+### On-Disk Obscured Storage (`data.json`)
+- Enabling **Save password on disk** encrypts credentials using Rclone's `rclone obscure` algorithm.
+- *Security Note*: Obscured passwords are protected against casual viewing, but anyone with local disk access to `data.json` and the open-source Rclone key can reverse them. Use RAM-Only mode for maximum security.
+
+> [!WARNING]
+> **Important Warnings & Limitation of Liability**:
+> - **Irrecoverable Data Loss**: Encryption operates directly on disk files. If credentials are lost or misconfigured, data **cannot** be recovered by anyone. Always maintain unencrypted backups of critical notes.
+> - **Multi-Layer Decryption Order**: Decryption of nested files **must** proceed in exact reverse order (Outer $\rightarrow$ Inner). Losing credentials for *any* intermediate layer permanently locks all inner contents.
+> - **Third-Party Vault Sync**: Verify whether your sync solution (Obsidian Sync, Git, iCloud) is syncing plaintext source files or encrypted outputs.
+> - **No Warranty**: Provided "as is" under the MIT License without warranty of any kind. Developers accept no liability for data loss or corruption resulting from use.
 
 ---
 
 ## Rclone CLI Compatibility
 
-Files encrypted by `obsidian-rcrypt` can be decrypted directly using the Rclone CLI by setting up a `crypt` remote in `rclone.conf` with matching parameters:
+Files encrypted in Obsidian can be decrypted directly by Rclone CLI using a matching `rclone.conf` entry:
 
-- `password` and `password2` matching your profile's **Password or pass phrase (for encryption)** and **Password or pass phrase (for salt)**.
-- `filename_encryption` set to `standard`, `obfuscate`, or `off`.
-- `filename_encoding` set to `base32` or `base64`.
+```ini
+[myvault]
+type = crypt
+remote = /path/to/obsidian/vault
+password = <your_obscured_passphrase>
+password2 = <your_obscured_salt>
+filename_encryption = standard
+filename_encoding = base32
+```
 
----
-
-## Official Rclone References & Resources
-
-For detailed specifications on Rclone's encryption standard and CLI operations, refer to the official Rclone documentation:
-
-- [Rclone Crypt Documentation](https://rclone.org/crypt/) — Official overview of Rclone Crypt, configuration options, and parameters.
-- [Rclone Crypt Technical Specification](https://rclone.org/crypt/#technical-specification) — Deep dive into Rclone key derivation (`scrypt`), block layout (`NaCl SecretBox`), and filename encryption modes.
-- [Rclone Obscure Command](https://rclone.org/commands/rclone_obscure/) — Official documentation for the `rclone obscure` CLI tool.
-- [Rclone Source Code (`backend/crypt`)](https://github.com/rclone/rclone/tree/master/backend/crypt) — Official Rclone Crypt Go implementation repository.
+### Official References & Resources
+- [Rclone Crypt Documentation](https://rclone.org/crypt/) — Official configuration overview and CLI usage.
+- [Rclone Technical Specification](https://rclone.org/crypt/#technical-specification) — Deep dive into scrypt key derivation and block layout.
+- [Rclone Obscure Command](https://rclone.org/commands/rclone_obscure/) — Documentation for the `rclone obscure` CLI tool.
+- [Rclone Source Code (`backend/crypt`)](https://github.com/rclone/rclone/tree/master/backend/crypt) — Official Go implementation repository.
