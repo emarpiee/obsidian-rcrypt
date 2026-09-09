@@ -99,6 +99,6 @@
 
 	.rcrypt-modal .setting-item.rcrypt-modal-actions .setting-item-control button {
 		width: 100%;
-		margin-left: 0 !important;
+		margin-left: 0;
 	}
 }
