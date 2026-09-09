@@ -1,5 +1,7 @@
 # Obsidian RCrypt
 
+[English](./README.md) | [简体中文](./docs/README.zh-CN.md) | [繁體中文](./docs/README.zh-TW.md) | [Español](./docs/README.es.md) | [Français](./docs/README.fr.md) | [Deutsch](./docs/README.de.md) | [日本語](./docs/README.ja.md) | [한국어](./docs/README.ko.md) | [Русский](./docs/README.ru.md) | [العربية](./docs/README.ar.md) | [עברית](./docs/README.he.md)
+
 Client-side file and folder encryption for [Obsidian](https://obsidian.md), fully compatible with the official [Rclone Crypt](https://rclone.org/crypt/) standard.
 
 `obsidian-rcrypt` runs 100% offline using pure web cryptography primitives (`@noble/ciphers` and `@noble/hashes`). It requires no local `rclone` binary installation and operates seamlessly across desktop and mobile platforms (Android, iOS, macOS, Windows, Linux).
