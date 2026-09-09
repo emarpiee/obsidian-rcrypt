@@ -114,17 +114,29 @@ npm run build
 
 ## Rclone CLI Compatibility
 
-Files encrypted in Obsidian can be decrypted directly by Rclone CLI using a matching `rclone.conf` entry:
+Files encrypted in RCrypt can be accessed or mounted directly using the official Rclone CLI by setting up a matching `crypt` remote in your `rclone.conf`:
 
 ```ini
 [myvault]
 type = crypt
-remote = /path/to/obsidian/vault
+remote = <path_to_vault_or_underlying_remote>
 password = <your_obscured_passphrase>
 password2 = <your_obscured_salt>
-filename_encryption = standard
-filename_encoding = base32
+filename_encryption = <match_profile: standard | obfuscate | off>
+filename_encoding = <match_profile: base32 | base64>
 ```
+
+> [!IMPORTANT]
+> **Match Your Profile Settings**:
+> The `filename_encryption` and `filename_encoding` values in `rclone.conf` **must match the specific RCrypt profile settings** used during encryption:
+>
+> | Parameter | `rclone.conf` Field | Explanation & Valid Options |
+> | :--- | :--- | :--- |
+> | **Storage Location** | `remote` | Path to local vault (e.g. `/path/to/obsidian/vault`) or cloud remote path (e.g. `gdrive:vault`) |
+> | **Passphrase** | `password` | Obscured string (`rclone obscure <passphrase>`) |
+> | **Salt** | `password2` | Obscured string (`rclone obscure <salt>`) |
+> | **Filename Encryption Mode** | `filename_encryption` | `standard`, `obfuscate`, or `off` |
+> | **Filename Encoding** | `filename_encoding` | `base32` or `base64` |
 
 ### Official References & Resources
 - [Rclone Crypt Documentation](https://rclone.org/crypt/) — Official configuration overview and CLI usage.
