@@ -258,9 +258,9 @@ export default class RCryptPlugin extends Plugin {
 			})
 		);
 
-		// Capture clicks on File Explorer items for encrypted files (including files without extensions or with arbitrary encrypted names)
-		const knownObsidianExts = new Set(['md', 'canvas', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'mp3', 'mp4', 'pdf', 'webp']);
-
+		// Capture clicks on File Explorer items for encrypted files (including files without extensions or with arbitrary encrypted names).
+		// Uses a positive match against all registered encrypted extensions — NOT an inverted allowlist —
+		// so unrecognised Obsidian-native extensions (e.g. .bases, .txt, .json) are never intercepted.
 		this.registerDomEvent(
 			document,
 			'click',
@@ -278,32 +278,46 @@ export default class RCryptPlugin extends Plugin {
 				const suffix = getEffectiveSuffix(activeProfile.encryptedExtension, activeProfile.filenameEncryptionMode);
 				const ext = abstractFile.extension ? abstractFile.extension.toLowerCase() : '';
 
+				// Build a positive set of every encrypted extension registered across all profiles
+				const registeredEncryptedExts = new Set<string>(
+					this.settings.profiles
+						.map((p) => (p.encryptedExtension || '.rcrypt').replace(/^\.+/, '').toLowerCase())
+						.filter((e) => e && e !== 'none')
+				);
+				registeredEncryptedExts.add('rcrypt');
+
+				// Only intercept clicks on files whose extension positively matches a known encrypted extension.
+				// Anything else is let through so Obsidian handles it natively.
 				const isLikelyEncrypted =
-					!knownObsidianExts.has(ext) ||
 					abstractFile.name.endsWith('.rcrypt') ||
-					(suffix !== '' && abstractFile.name.endsWith(suffix));
+					(suffix !== '' && abstractFile.name.endsWith(suffix)) ||
+					registeredEncryptedExts.has(ext);
 
-				if (isLikelyEncrypted) {
-					const isNewTab = evt.ctrlKey || evt.metaKey || evt.button === 1;
-					// MUST call preventDefault synchronously BEFORE any async execution to prevent OS Open With dialog
-					evt.preventDefault();
-					evt.stopPropagation();
-					evt.stopImmediatePropagation();
+				if (!isLikelyEncrypted) return;
 
-					void (async (): Promise<void> => {
-						const isEncrypted =
-							abstractFile.name.endsWith('.rcrypt') ||
-							(suffix !== '' && abstractFile.name.endsWith(suffix)) ||
-							(await hasRcloneHeader(this.app, abstractFile));
+				const isNewTab = evt.ctrlKey || evt.metaKey || evt.button === 1;
+				// MUST call preventDefault synchronously BEFORE any async execution to prevent OS Open With dialog
+				evt.preventDefault();
+				evt.stopPropagation();
+				evt.stopImmediatePropagation();
 
-						if (isEncrypted) {
-							void processItems(this, [abstractFile], 'decrypt', true, activeProfile.id, isNewTab);
-						} else if (targetApp.openWithDefaultApp) {
-							// Fallback to default app if not actually encrypted
-							void targetApp.openWithDefaultApp(abstractFile.path);
-						}
-					})();
-				}
+				void (async (): Promise<void> => {
+					const isEncrypted =
+						abstractFile.name.endsWith('.rcrypt') ||
+						(suffix !== '' && abstractFile.name.endsWith(suffix)) ||
+						(await hasRcloneHeader(this.app, abstractFile));
+
+					if (isEncrypted) {
+						void processItems(this, [abstractFile], 'decrypt', true, activeProfile.id, isNewTab);
+					} else {
+						// File extension matched an encrypted extension pattern but the file is not actually
+						// encrypted (e.g. a real .mp4 video when the user has configured .mp4 as encrypted ext).
+						// Open via Obsidian's own API to restore native behaviour — NOT openWithDefaultApp,
+						// which would hand the file off to the OS and bypass Obsidian's built-in viewers.
+						const leaf = this.app.workspace.getLeaf(isNewTab);
+						await leaf.openFile(abstractFile);
+					}
+				})();
 			},
 			true
 		);
