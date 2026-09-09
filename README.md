@@ -20,6 +20,7 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
   - **Standard** (AES-256-EME with PKCS#7 padding)
   - **Obfuscate** (Rclone character-rotation cipher)
   - **Off** (Plaintext filenames with optional file extension suffix)
+- **Nested (Multi-Layer) Encryption**: Encrypt already-encrypted files with different or matching profiles (e.g. an inner private profile + an outer secondary profile). Features smart post-decryption detection that notifies you whenever an inner encryption layer remains.
 - **Automatic Fallback & Decoupled Decryption**: Decryption handles unencrypted/already decrypted files in bulk operations and automatically strips suffixes based on file type.
 - **Internationalization (i18n)**: Multilingual UI support across 10 languages with automatic locale matching and RTL language handling.
 
@@ -66,6 +67,7 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
 | **Key Derivation** | `scrypt` | `N=16384`, `r=8`, `p=1` deriving 80 bytes (`dataKey`: bytes 0–31, `nameKey`: bytes 32–63, `nameTweak`: bytes 64–79) using passphrase and salt (defaults to Rclone 16-byte fixed default salt if salt is empty) |
 | **Payload Cipher** | `NaCl SecretBox` | XSalsa20 stream cipher with Poly1305 MAC tags (16 bytes per 64 KiB block). 8-byte magic header (`RCLONE\x00\x00`) followed by 24-byte base nonce |
 | **Filename Encryption** | `EME (AES-256)` / `Obfuscate` / `Off` | **Standard**: AES-256 EME wide-block cipher with `nameKey` & `nameTweak` & Base32/Base64.<br>**Obfuscate**: Rclone character rotation with 256-bit key.<br>**Off**: Plaintext with optional extension suffix |
+| **Nested Encryption** | `Multi-Pass XSalsa20` | Full 1:1 Rclone support for multi-pass binary payload encryption. Features smart output byte inspection for `RCLONE\x00\x00` magic header |
 | **On-Disk Password Security** | `AES-256-CTR Obscure` | AES-256 in CTR mode using Rclone's internal 256-bit fixed key and 16-byte random IV, serialized as URL-safe unpadded Base64 |
 
 ---
@@ -73,6 +75,7 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
 > [!WARNING]
 > **Use at your own risk!**
 > - **Data Loss Risk**: Encrypting files modifies their raw contents on disk. If you forget your password or salt, or if your credentials are misconfigured, your encrypted data **cannot** be recovered by anyone. Always maintain unencrypted backups of critical notes before encrypting.
+> - **Nested Encryption Credentials**: When using nested (multi-layer) encryption, you **must** remember the exact sequence of passphrases/salts used. Decryption must be executed in reverse order (Outer $\rightarrow$ Inner). Losing credentials for *any* layer permanently locks all inner contents.
 > - **Obscured On-Disk Storage**: Enabling "Save password on disk" stores your obscured password in `data.json`. While obscured from direct text viewing, anyone with local read access to your `data.json` can reverse the official Rclone key to retrieve your plaintext password.
 > - **RAM Memory Exposure**: When "Save password on disk" is disabled, passwords reside in RAM during your Obsidian session. Memory-dump attacks or unauthorized local processes with process-memory read permissions could inspect process RAM.
 > - **Third-Party Sync Plugins**: If you sync your vault using third-party plugins or cloud storage services (Git, iCloud, Obsidian Sync), ensure you understand whether you are syncing unencrypted source files or encrypted files.
@@ -130,6 +133,23 @@ Every file encrypted by `obsidian-rcrypt` follows Rclone Crypt's binary structur
 > **Independent Content & Filename Decryption (Rclone Design Standard)**:
 > In Rclone Crypt, key derivation derives two separate keys: `dataKey` (for file payload encryption) and `nameKey` (for filename encryption). Because payload decryption relies solely on `dataKey` derived from your passphrase and salt, file contents will successfully unlock whenever the passphrase and salt are correct—even if the Filename Encryption Mode or Filename Encoding is misconfigured. In such cases, the payload content decrypts properly, but the resulting filename or extension may appear scrambled until decrypted with matching filename settings.
 
+### 4. Nested (Multi-Layer) Encryption
+
+`obsidian-rcrypt` natively supports multi-layer nested encryption, matching Rclone CLI's ability to layer `crypt` remotes over other `crypt` remotes.
+
+- **Payload Layering**: Each encryption pass generates a fresh 24-byte base nonce and XSalsa20 stream cipher block. Encrypting an already-encrypted file wraps the inner `RCLONE\x00\x00` ciphertext payload inside a new outer Rclone binary block.
+- **Smart Inner Layer Detection**: When decrypting an outer layer, `obsidian-rcrypt` automatically inspects the decrypted output bytes. If the output payload still contains an `RCLONE\x00\x00` magic header, the plugin displays a notification informing you that an inner encryption layer remains.
+
+> [!TIP]
+> **Nested Encryption Use Cases**:
+> - **Tiered Access Control**: Encrypt sensitive notes with an Inner Profile, then re-encrypt with an Outer Profile for secondary backup or multi-key protection.
+> - **Metadata & Structure Hiding**: Use `Standard` filename encryption on the outer layer to scramble folder/filename structure, over an `Off` or `Obfuscate` inner layer.
+
+> [!WARNING]
+> **Key & Order Dependencies**:
+> - **Reverse Decryption Order**: You must decrypt layers in reverse order (Outer Pass $\rightarrow$ Inner Pass) using the exact profile credentials for each respective layer.
+> - **Credential Risk**: Losing credentials for *any* layer in the chain permanently locks all underlying data inside that layer.
+
 ---
 
 ## Usage
@@ -145,6 +165,17 @@ Every file encrypted by `obsidian-rcrypt` follows Rclone Crypt's binary structur
 - Right-click any file, selection of files, or folder in Obsidian File Explorer.
 - Open **Encrypt file** or **Decrypt file** from the context menu.
 - Choose your target profile or select **Encrypt with custom passphrase...** to enter one-time credentials.
+
+### 3. Nested (Multi-Layer) Encryption Workflow
+- **Adding Outer Encryption**: To encrypt an already-encrypted file or folder a second time, right-click the file and select **Encrypt file**. Select your outer profile or enter custom credentials.
+- **Unwrapping Outer Layer**: Right-click the double-encrypted file and select **Decrypt file** using the outer profile credentials.
+- **Smart Inner Layer Detection**: Upon successful outer decryption, `obsidian-rcrypt` will display:
+  > 🔓 *Decrypted outer layer for 1 item(s). Inner encryption layer detected!*
+- **Unwrapping Inner Layer**: Right-click the remaining file and select **Decrypt file** using the inner profile credentials to restore the original plaintext.
+
+> [!CAUTION]
+> **Avoid Incompatible Operations During Multi-Pass Encryption**:
+> - Ensure you do not modify raw binary ciphertext manually between encryption/decryption passes (e.g., opening and saving raw binary in text editors), as this corrupts binary header structures (`RCLONE\x00\x00`).
 
 ---
 

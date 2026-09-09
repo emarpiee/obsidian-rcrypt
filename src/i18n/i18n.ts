@@ -76,6 +76,7 @@ export interface TranslationSchema {
 	// Notices & Notifications
 	noticeEncryptSuccess: (count: number) => string;
 	noticeDecryptSuccess: (count: number) => string;
+	noticeDecryptSuccessInnerLayer: (count: number) => string;
 	noticeEncryptFailed: (count: number, err: string) => string;
 	noticeDecryptFailed: (count: number, err: string) => string;
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => string;
@@ -160,6 +161,7 @@ const en: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ Encryption completed: ${count} item${count > 1 ? 's' : ''} processed.`,
 	noticeDecryptSuccess: (count: number) => `✅ Decryption completed: ${count} item${count > 1 ? 's' : ''} processed.`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 Decrypted outer layer for ${count} item${count > 1 ? 's' : ''}. Inner encryption layer detected!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ Encryption failed (${count} item${count > 1 ? 's' : ''}): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) =>
 		`❌ Decryption failed (${count} item${count > 1 ? 's' : ''}):\n` +
@@ -241,6 +243,7 @@ const zh: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ 加密完成：已处理 ${count} 个项目。`,
 	noticeDecryptSuccess: (count: number) => `✅ 解密完成：已处理 ${count} 个项目。`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 已解密外层：已处理 ${count} 个项目。检测到内部加密层！`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ 加密失败 (${count} 个项目)：${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ 解密失败 (${count} 个项目)：${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '加密' : '解密'} 完成但有错误：${success} 成功，${fail} 失败。(${err})`,
@@ -311,6 +314,7 @@ const zhTW: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ 加密完成：已處理 ${count} 個項目。`,
 	noticeDecryptSuccess: (count: number) => `✅ 解密完成：已處理 ${count} 個項目。`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 已解密外層：已處理 ${count} 個項目。檢測到內部加密層！`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ 加密失敗 (${count} 個項目)：${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ 解密失敗 (${count} 個項目)：${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '加密' : '解密'} 完成但有錯誤：${success} 成功，${fail} 失敗。(${err})`,
@@ -377,6 +381,7 @@ const es: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ Cifrado completado: ${count} elemento(s) procesado(s).`,
 	noticeDecryptSuccess: (count: number) => `✅ Descifrado completado: ${count} elemento(s) procesado(s).`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 Capa exterior descifrada para ${count} elemento(s). ¡Se detectó una capa de cifrado interior!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ Cifrado fallido (${count} elementos): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ Descifrado fallido (${count} elementos): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Cifrado' : 'Descifrado'} finalizado con errores: ${success} con éxito, ${fail} fallidos. (${err})`,
@@ -435,6 +440,7 @@ const fr: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ Chiffrement terminé : ${count} élément(s) traité(s).`,
 	noticeDecryptSuccess: (count: number) => `✅ Déchiffrement terminé : ${count} élément(s) traité(s).`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 Couche externe déchiffrée pour ${count} élément(s). Couche de chiffrement interne détectée !`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ Échec du chiffrement (${count} éléments) : ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ Échec du déchiffrement (${count} éléments) : ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Chiffrement' : 'Déchiffrement'} terminé avec des erreurs : ${success} réussi(s), ${fail} échoué(s). (${err})`,
@@ -493,6 +499,7 @@ const de: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ Verschlüsselung abgeschlossen: ${count} Element(e) verarbeitet.`,
 	noticeDecryptSuccess: (count: number) => `✅ Entschlüsselung abgeschlossen: ${count} Element(e) verarbeitet.`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 Äußere Schicht entschlüsselt für ${count} Element(e). Innere Verschlüsselungsschicht erkannt!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ Verschlüsselung fehlgeschlagen (${count} Elemente): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ Entschlüsselung fehlgeschlagen (${count} Elemente): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Verschlüsselung' : 'Entschlüsselung'} mit Fehlern beendet: ${success} erfolgreich, ${fail} fehlgeschlagen. (${err})`,
@@ -551,6 +558,7 @@ const ja: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ 暗号化完了: ${count}件のアイテムを処理しました。`,
 	noticeDecryptSuccess: (count: number) => `✅ 復号完了: ${count}件のアイテムを処理しました。`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 外側のレイヤーを復号しました (${count}件)。内側の暗号化レイヤーが検出されました！`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ 暗号化失敗 (${count}件): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ 復号失敗 (${count}件): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '暗号化' : '復号'} がエラー付きで完了しました: ${success}件成功、${fail}件失敗。(${err})`,
@@ -609,6 +617,7 @@ const ko: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ 암호화 완료: ${count}개 항목 처리됨.`,
 	noticeDecryptSuccess: (count: number) => `✅ 복호화 완료: ${count}개 항목 처리됨.`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 외부 레이어 복호화 완료: ${count}개 항목. 내부 암호화 레이어가 감지되었습니다!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ 암호화 실패 (${count}개 항목): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ 복호화 실패 (${count}개 항목): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '암호화' : '복호화'}가 오류와 함께 완료됨: ${success}개 성공, ${fail}개 실패. (${err})`,
@@ -667,6 +676,7 @@ const ru: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ Шифрование завершено: обработано ${count} элемент(ов).`,
 	noticeDecryptSuccess: (count: number) => `✅ Расшифровка завершена: обработано ${count} элемент(ов).`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 Внешний слой расшифрован для ${count} элемент(ов). Обнаружен внутренний слой шифрования!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ Ошибка шифрования (${count} элементов): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ Ошибка расшифровки (${count} элементов): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Шифрование' : 'Расшифровка'} завершена с ошибками: ${success} успешно, ${fail} не удалось. (${err})`,
@@ -725,6 +735,7 @@ const ar: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ اكتمل التشفير: تم معالجة ${count} عنصر/عناصر.`,
 	noticeDecryptSuccess: (count: number) => `✅ اكتمل فك التشفير: تم معالجة ${count} عنصر/عناصر.`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 تم فك تشفير الطبقة الخارجية لـ ${count} عنصر/عناصر. تم اكتشاف طبقة تشفير داخلية!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ فشل التشفير (${count} عناصر): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ فشل فك التشفير (${count} عناصر): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ اكتمل ${action === 'encrypt' ? 'التشفير' : 'فك التشفير'} مع وجود أخطاء: نجح ${success}، وفشل ${fail}. (${err})`,
@@ -783,6 +794,7 @@ const he: TranslationSchema = {
 
 	noticeEncryptSuccess: (count: number) => `✅ ההצפנה הושלמה: עובדו ${count} פריטים.`,
 	noticeDecryptSuccess: (count: number) => `✅ הפענוח הושלם: עובדו ${count} פריטים.`,
+	noticeDecryptSuccessInnerLayer: (count: number) => `🔓 השכבה החיצונית פוענחה עבור ${count} פריטים. זיהה שכבת הצפנה פנימית!`,
 	noticeEncryptFailed: (count: number, err: string) => `❌ ההצפנה נכשלה (${count} פריטים): ${err}`,
 	noticeDecryptFailed: (count: number, err: string) => `❌ הפענוח נכשל (${count} פריטים): ${err}`,
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'ההצפנה' : 'הפענוח'} הושלמו עם שגיאות: ${success} הצליחו, ${fail} נכשלו. (${err})`,

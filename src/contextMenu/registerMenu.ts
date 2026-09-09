@@ -230,6 +230,7 @@ export async function executeBatchAction(
 	const t = getText();
 	let successCount = 0;
 	let failCount = 0;
+	let innerLayerDetectedCount = 0;
 
 	const allFiles: TFile[] = [];
 	const topFolders: TFolder[] = [];
@@ -274,10 +275,6 @@ export async function executeBatchAction(
 
 		try {
 			if (action === 'encrypt') {
-				const isAlreadyEncrypted = isEncryptedFilename(file.name, profile.encryptedExtension, profile.filenameEncryptionMode);
-				if (isAlreadyEncrypted) {
-					continue;
-				}
 				const content = new Uint8Array(await plugin.app.vault.readBinary(file));
 				const encryptedBytes = plugin.engine.encryptFile(content, passphrase, salt, profile.id);
 
@@ -338,6 +335,9 @@ export async function executeBatchAction(
 
 				// 2. Decrypt file payload strictly using selected profile
 				const decryptedBytes = plugin.engine.decryptFile(content, passphrase, salt, profile.id);
+				if (hasRcloneMagicHeader(decryptedBytes)) {
+					innerLayerDetectedCount++;
+				}
 
 				// 3. Save decrypted file
 				const parentDir = file.parent && file.parent.path !== '/' ? `${file.parent.path}/` : '';
@@ -462,12 +462,17 @@ export async function executeBatchAction(
 				12000
 			);
 		} else {
-			plugin.showNotice(
-				action === 'encrypt'
-					? t.noticeEncryptSuccess(successCount)
-					: t.noticeDecryptSuccess(successCount),
-				8000
-			);
+			if (action === 'decrypt' && innerLayerDetectedCount > 0) {
+				const noticeFn = t.noticeDecryptSuccessInnerLayer || t.noticeDecryptSuccess;
+				plugin.showNotice(noticeFn(successCount), 10000);
+			} else {
+				plugin.showNotice(
+					action === 'encrypt'
+						? t.noticeEncryptSuccess(successCount)
+						: t.noticeDecryptSuccess(successCount),
+					8000
+				);
+			}
 		}
 	} else {
 		// Informative notice when no items were modified (e.g. already encrypted/decrypted)
@@ -523,4 +528,19 @@ function collectFoldersPostOrder(folder: TFolder, out: TFolder[]): void {
 	}
 	out.push(folder);
 }
+
+function hasRcloneMagicHeader(bytes: Uint8Array): boolean {
+	if (bytes.length < 8) return false;
+	return (
+		bytes[0] === 0x52 &&
+		bytes[1] === 0x43 &&
+		bytes[2] === 0x4c &&
+		bytes[3] === 0x4f &&
+		bytes[4] === 0x4e &&
+		bytes[5] === 0x45 &&
+		bytes[6] === 0x00 &&
+		bytes[7] === 0x00
+	);
+}
+
 

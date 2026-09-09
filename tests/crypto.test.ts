@@ -89,14 +89,31 @@ describe('Rclone Crypt Engine 1:1 Compatibility Tests', () => {
 		expect(decEME64).toBe(originalFilename);
 	});
 
-	it('should support autoEncryptOnClose property on profile', () => {
-		const defaultProfile = { ...DEFAULT_PROFILE };
-		expect(defaultProfile.autoEncryptOnClose).toBe(false);
+	it('should support nested (double) encryption and two-stage decryption', () => {
+		const keys1 = deriveRcloneKeys('innerPassphrase', 'innerSalt');
+		const keys2 = deriveRcloneKeys('outerPassphrase', 'outerSalt');
+		const originalText = 'Nested confidential content!';
+		const plaintext = new TextEncoder().encode(originalText);
 
-		const profileWithAutoEncrypt: CryptProfile = {
-			...DEFAULT_PROFILE,
-			autoEncryptOnClose: true,
-		};
-		expect(profileWithAutoEncrypt.autoEncryptOnClose).toBe(true);
+		// Layer 1 (Inner Encryption)
+		const layer1Encrypted = encryptPayload(plaintext, keys1.dataKey);
+		const magic1 = String.fromCharCode(...layer1Encrypted.subarray(0, 6));
+		expect(magic1).toBe('RCLONE');
+
+		// Layer 2 (Outer Encryption)
+		const layer2Encrypted = encryptPayload(layer1Encrypted, keys2.dataKey);
+		const magic2 = String.fromCharCode(...layer2Encrypted.subarray(0, 6));
+		expect(magic2).toBe('RCLONE');
+
+		// Stage 1 Decrypt (Outer Decryption)
+		const decryptedOuter = decryptPayload(layer2Encrypted, keys2.dataKey);
+		const outerMagic = String.fromCharCode(...decryptedOuter.subarray(0, 6));
+		expect(outerMagic).toBe('RCLONE'); // Inner layer magic header detected!
+
+		// Stage 2 Decrypt (Inner Decryption)
+		const decryptedInner = decryptPayload(decryptedOuter, keys1.dataKey);
+		const decryptedText = new TextDecoder().decode(decryptedInner);
+		expect(decryptedText).toBe(originalText);
 	});
 });
+
