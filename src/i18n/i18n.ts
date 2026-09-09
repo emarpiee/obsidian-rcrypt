@@ -133,7 +133,7 @@ const en: TranslationSchema = {
 	encodingBase64: 'Base64 (URL-safe base64)',
 	encodingBase32768: 'Base32768 (Compact UTF-16)',
 	encryptedSuffixName: 'Encrypted file suffix',
-	encryptedSuffixDesc: 'File extension appended to encrypted files (e.g. .rcrypt).',
+	encryptedSuffixDesc: 'File extension appended to encrypted files (e.g. .bin).',
 	encryptFolderNamesName: 'Encrypt folder names',
 	encryptFolderNamesDesc: 'Encrypt folder names matching rclone directory encryption standard.',
 	autoDeleteSourceName: 'Auto-delete source file',

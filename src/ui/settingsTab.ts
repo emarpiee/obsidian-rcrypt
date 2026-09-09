@@ -186,13 +186,13 @@ export class RCryptSettingTab extends PluginSettingTab {
 		// Encrypted Extension (Suffix)
 		const suffixSetting = new Setting(containerEl)
 			.setName(t.encryptedSuffixName)
-			.setDesc(t.encryptedSuffixDesc)
+			.setDesc(t.encryptedSuffixDesc || 'File extension appended to encrypted files (e.g. .bin).')
 			.addText((text) => {
 				text
-					.setPlaceholder('.rcrypt')
+					.setPlaceholder('.bin')
 					.setValue(activeProfile.encryptedExtension)
 					.onChange(async (value) => {
-						activeProfile.encryptedExtension = value || '.rcrypt';
+						activeProfile.encryptedExtension = value || '.bin';
 						await this.plugin.saveSettings();
 					});
 			});

@@ -53,7 +53,9 @@ npm run build
 1. Open **Obsidian Settings** $\rightarrow$ **RCrypt**.
 2. Create or select a **Crypt Profile**.
 3. Set your **Passphrase** and **Salt** (corresponding to `password` and `password2` in `rclone.conf`).
-4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`) and **Filename Encoding** (`Base32`, `Base64`, or `Base32768`).
+4. Select your **Filename Encryption Mode** (`Standard`, `Obfuscate`, or `Off`).
+   - If using **Standard** mode: also select a **Filename Encoding** (`Base32` *(default)*, `Base64`, or `Base32768`).
+   - If using **Off** mode: set your **Encrypted file suffix** (default: `.bin`, matching Rclone's `--crypt-suffix` default).
 
 ### 2. Basic Encryption & Decryption
 - **Context Menu**: Right-click any file, selection of files, or folder in the Obsidian File Explorer and choose **Encrypt** or **Decrypt**.
@@ -120,7 +122,7 @@ In Rclone Crypt standard, **Filename Encryption Mode** (`filename_encryption`) a
 | :--- | :--- | :--- |
 | **`standard`** | **YES** (`base32`, `base64`, `base32768`) | Encrypts filename bytes using AES-256 EME wide-block cipher. **Requires an encoding scheme** to convert binary bytes into a string filename. |
 | **`obfuscate`** | **NO** *(Ignored by Rclone CLI)* | Applies lightweight character rotation (`cipher.obfuscateSegment`). Operates directly on string characters, so byte encoding does not apply. |
-| **`off`** | **NO** *(Ignored by Rclone CLI)* | Leaves filenames in plaintext (appends a suffix such as `.rcrypt` or `.bin`). |
+| **`off`** | **NO** *(Ignored by Rclone CLI)* | Leaves filenames in plaintext and appends a configurable suffix (default: `.bin`, matching Rclone's `--crypt-suffix` default). |
 
 #### Available Filename Encodings (Used when Mode = `standard`):
 - **`base32`** *(Default)*: Unpadded Extended Hex Base32 (`0123456789abcdefghijklmnopqrstuv`). Works across all cloud remotes and local filesystems.
@@ -140,7 +142,10 @@ remote = <path_to_vault_or_underlying_remote>
 password = <your_obscured_passphrase>
 password2 = <your_obscured_salt>
 filename_encryption = <match_profile: standard | obfuscate | off>
-filename_encoding = <match_profile: base32 | base64 | base32768 (only applies when filename_encryption = standard)>
+# filename_encoding only applies when filename_encryption = standard
+filename_encoding = <base32 | base64 | base32768>
+# suffix only applies when filename_encryption = off (default: .bin)
+suffix = <match_profile: .bin or custom>
 ```
 
 > [!IMPORTANT]
@@ -153,7 +158,8 @@ filename_encoding = <match_profile: base32 | base64 | base32768 (only applies wh
 > | **Passphrase** | `password` | Obscured string (`rclone obscure <passphrase>`) |
 > | **Salt** | `password2` | Obscured string (`rclone obscure <salt>`) |
 > | **Filename Encryption Mode** | `filename_encryption` | `standard`, `obfuscate`, or `off` |
-> | **Filename Encoding** | `filename_encoding` | `base32`, `base64`, or `base32768` *(only used when `filename_encryption = standard`)* |
+> | **Filename Encoding** | `filename_encoding` | `base32` *(default)*, `base64`, or `base32768` — **only used when `filename_encryption = standard`** |
+> | **File Suffix** | `suffix` | Default `.bin` (Rclone standard) — **only used when `filename_encryption = off`** |
 
 ### Official References & Resources
 - [Rclone Crypt Documentation](https://rclone.org/crypt/) — Official configuration overview and CLI usage.

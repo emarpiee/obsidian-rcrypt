@@ -45,7 +45,7 @@ export const DEFAULT_PROFILE: CryptProfile = {
 	passphraseHint: '',
 	filenameEncryptionMode: 'standard',
 	filenameEncoding: 'base32',
-	encryptedExtension: '.rcrypt',
+	encryptedExtension: '.bin',
 	encryptFolderNames: false,
 	savePassphraseOnDisk: false,
 	autoEncryptOnClose: false,
