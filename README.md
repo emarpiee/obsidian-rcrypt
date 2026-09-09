@@ -19,19 +19,24 @@ Client-side file and folder encryption for [Obsidian](https://obsidian.md), full
 
 ## Installation
 
-### Option 1: Via BRAT (Recommended for Pre-releases)
+### Option 1: Official Obsidian Community Plugin Store
+1. Open Obsidian **Settings** $\rightarrow$ **Community plugins**.
+2. Click **Browse** and search for **RCrypt**.
+3. Click **Install**, then click **Enable**.
+
+### Option 2: Via BRAT (Recommended for Pre-releases / Beta Testing)
 1. Install [BRAT](https://github.com/TfTHacker/obsidian-42-brat) in Obsidian (**Settings** $\rightarrow$ **Community plugins** $\rightarrow$ Search **BRAT**).
 2. Open BRAT settings and click **Add Beta plugin**.
 3. Enter repository URL: `https://github.com/emarpiee/obsidian-rcrypt`
 4. Click **Add Plugin** and enable **RCrypt** in your Community Plugins list.
 
-### Option 2: Manual Installation
+### Option 3: Manual Installation
 1. Download `main.js`, `manifest.json`, and `styles.css` (if available) from the latest [GitHub Release](https://github.com/emarpiee/obsidian-rcrypt/releases).
 2. Create directory `<vault>/.obsidian/plugins/obsidian-rcrypt/`.
 3. Move the downloaded release files into `<vault>/.obsidian/plugins/obsidian-rcrypt/`.
 4. Reload Obsidian and enable **RCrypt** under **Settings** $\rightarrow$ **Community plugins**.
 
-### Option 3: Build from Source
+### Option 4: Build from Source
 ```bash
 cd /path/to/vault/.obsidian/plugins/
 git clone https://github.com/emarpiee/obsidian-rcrypt.git
