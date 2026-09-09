@@ -6,7 +6,9 @@
 
 تشفير الملفات والمجلدات من جانب العميل لـ [Obsidian](https://obsidian.md)، متوافق تمامًا مع معيار [Rclone Crypt](https://rclone.org/crypt/) الرسمي.
 
-يعمل `obsidian-rcrypt` دون اتصال بالإنترنت بنسبة 100% باستخدام أولويات التشفير على الويب (`@noble/ciphers` و `@noble/hashes`). لا يتطلب تثبيت أداة `rclone` برمجية محليًا ويعمل بسلاسة عبر جميع أنظمة التشغيل (Android, iOS, macOS, Windows, Linux).
+يعمل `obsidian-rcrypt` يعمل بنسبة 100٪ دون اتصال بالإنترنت باستخدام برمجيات التشفير المباشرة (`@noble/ciphers` و `@noble/hashes`). لا يتطلب تثبيت برنامج `rclone` محليًا ويعمل بسلاسة عبر الأجهزة المكتبية والمحمولة (Android, iOS, macOS, Windows, Linux).
+
+> **إخلاء مسؤولية**: هذه الإضافة هي مشروع مستقل مفتوح المصدر ولا تتبع أو ترتبط بأي شكل من الأشكال بـ مشروع [Rclone](https://rclone.org) الرسمي.
 
 ---
 

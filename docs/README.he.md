@@ -6,7 +6,9 @@
 
 הצפנת קבצים ותיקיות בצד-לקוח עבור [Obsidian](https://obsidian.md), תואמת לחלוטין לתקן הרשמי של [Rclone Crypt](https://rclone.org/crypt/).
 
-`obsidian-rcrypt` פועל 100% במצב אופליין באמצעות פרימיטיבי קריפטוגרפיה של אינטרנט (`@noble/ciphers` ו-`@noble/hashes`). הוא אינו דורש התקנה מקומית של קובץ הפעלה של `rclone` ופועל בצורה חלקות לרוחב פלטפורמות שולחן עבודה ומכשירים ניידים (Android, iOS, macOS, Windows, Linux).
+`obsidian-rcrypt` פועל 100% אופליין באמצעות פרימיטיבי קריפטוגרפיה של ווב (`@noble/ciphers` ו-`@noble/hashes`). הוא אינו דורש התקנה מקומית של קובץ `rclone` ופועל ללא בעיות בכל הפלטפורמות (Android, iOS, macOS, Windows, Linux).
+
+> **הבהרה / פטור מאחריות**: תוסף זה הוא פרויקט קוד פתוח עצמאי ואינו קשור, מתוחזק או מומלץ על ידי פרויקט [Rclone](https://rclone.org) הרשמי.
 
 ---
 

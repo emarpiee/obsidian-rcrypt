@@ -6,7 +6,9 @@
 
 [Obsidian](https://obsidian.md)을 위한 클라이언트 측 파일 및 폴더 암호화 플러그인으로, 공식 [Rclone Crypt](https://rclone.org/crypt/) 표준과 완전히 호환됩니다.
 
-`obsidian-rcrypt`는 순수 Web 암호화 기본 요소(`@noble/ciphers` 및 `@noble/hashes`)를 사용하여 100% 오프라인으로 실행됩니다. 로컬 `rclone` 바이너리 설치가 필요 없으며 데스크탑 및 모바일 플랫폼(Android, iOS, macOS, Windows, Linux)에서 원활하게 작동합니다.
+`obsidian-rcrypt`는 웹 암호화 프리미티브(`@noble/ciphers` 및 `@noble/hashes`)를 사용하여 100% 오프라인으로 작동합니다. 로컬 `rclone` 바이너리 설치가 필요 없으며 데스크톱 및 모바일 플랫폼(Android, iOS, macOS, Windows, Linux)에서 원활하게 작동합니다.
+
+> **면책 조항**: 이 플러그인은 독립적인 오픈 소스 프로젝트이며 공식 [Rclone](https://rclone.org) 프로젝트와 제휴, 유지 관리 또는 보증되지 않습니다.
 
 ---
 

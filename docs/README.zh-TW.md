@@ -8,6 +8,8 @@
 
 `obsidian-rcrypt` 使用純 Web 密碼學原語（`@noble/ciphers` 和 `@noble/hashes`），100% 離線運行，無需安裝本地 `rclone` 二進位檔案，可在桌面和行動平台（Android、iOS、macOS、Windows、Linux）上無縫運行。
 
+> **免責聲明**：本外掛為一個獨立的開源項目，非 [Rclone](https://rclone.org) 官方團隊開發，且與其無任何附屬或背書關係。
+
 ---
 
 ## 核心特性

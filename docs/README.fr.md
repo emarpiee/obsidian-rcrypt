@@ -6,7 +6,9 @@
 
 Chiffrement de fichiers et de dossiers côté client pour [Obsidian](https://obsidian.md), entièrement compatible avec la norme officielle [Rclone Crypt](https://rclone.org/crypt/).
 
-`obsidian-rcrypt` fonctionne 100% hors ligne en utilisant des primitives cryptographiques Web pures (`@noble/ciphers` et `@noble/hashes`). Il ne nécessite aucune installation locale du binaire `rclone` et fonctionne de manière transparente sur les plateformes de bureau et mobiles (Android, iOS, macOS, Windows, Linux).
+`obsidian-rcrypt` fonctionne à 100% hors ligne en utilisant des primitives cryptographiques web pures (`@noble/ciphers` et `@noble/hashes`). Il ne nécessite aucune installation locale du binaire `rclone` et fonctionne en toute transparence sur les plates-formes de bureau et mobiles (Android, iOS, macOS, Windows, Linux).
+
+> **Avertissement** : Ce plugin est un projet open-source indépendant et n'est pas affilié à, maintenu par ou approuvé par le projet officiel [Rclone](https://rclone.org).
 
 ---
 

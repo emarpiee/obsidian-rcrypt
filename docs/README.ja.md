@@ -6,7 +6,9 @@
 
 [Obsidian](https://obsidian.md) 向けのクライアントサイドファイル・フォルダ暗号化プラグインで、公式の [Rclone Crypt](https://rclone.org/crypt/) 標準と完全に互換します。
 
-`obsidian-rcrypt` は純粋な Web 暗号プリミティブ（`@noble/ciphers` および `@noble/hashes`）を使用して 100% オフラインで動作します。ローカルへの `rclone` バイナリのインストールは不要で、デスクトップ・モバイルプラットフォーム（Android、iOS、macOS、Windows、Linux）でシームレスに動作します。
+`obsidian-rcrypt` は、純粋な Web 暗号化プリミティブ（`@noble/ciphers` および `@noble/hashes`）を使用して 100% オフラインで動作します。ローカルの `rclone` バイナリのインストールは不要で、デスクトップおよびモバイルプラットフォーム（Android、iOS、macOS、Windows、Linux）でシームレスに動作します。
+
+> **免責事項**: 本プラグインは独立したオープンソースプロジェクトであり、公式の [Rclone](https://rclone.org) プロジェクトとは関係がなく、提携・維持・承認されているものではありません。
 
 ---
 

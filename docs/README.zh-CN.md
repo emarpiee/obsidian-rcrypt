@@ -8,6 +8,8 @@
 
 `obsidian-rcrypt` 使用纯 Web 密码学原语（`@noble/ciphers` 和 `@noble/hashes`），100% 离线运行，无需安装本地 `rclone` 二进制文件，可在桌面和移动平台（Android、iOS、macOS、Windows、Linux）上无缝运行。
 
+> **免责声明**：本插件为一个独立的开源项目，非 [Rclone](https://rclone.org) 官方团队开发，且与其无任何附属或背书关系。
+
 ---
 
 ## 核心特性
