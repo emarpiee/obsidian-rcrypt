@@ -152,7 +152,7 @@ export async function processItems(
 					if (res.profileId === 'custom') {
 						selectedProfile = {
 							id: 'custom',
-							name: 'Custom Configuration',
+							name: t.customProfileName || 'Custom Configuration',
 							passphrase: res.passphrase,
 							salt: res.salt,
 							autoEncryptOnClose: res.autoEncryptOnClose ?? false,
@@ -328,7 +328,7 @@ export async function executeBatchAction(
 							plugin.engine.decryptFile(content, passphrase, salt, profile.id);
 							decName = rawEncName; // Plain filename
 						} catch {
-							throw new Error('Incorrect passphrase, salt, or filename mode.');
+							throw new Error(t.modalErrDecryptFailed || 'Incorrect passphrase, salt, or filename mode.');
 						}
 					}
 				}

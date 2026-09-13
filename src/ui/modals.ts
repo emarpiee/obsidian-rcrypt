@@ -82,7 +82,10 @@ export class PassphraseModal extends Modal {
 			if (this.selectedProfileId !== 'custom') {
 				const activeProf = this.profiles.find((p) => p.id === this.selectedProfileId);
 				if (activeProf && activeProf.passphraseHint) {
-					hintEl.setText(`💡 Hint: ${activeProf.passphraseHint}`);
+					const labelText = t.passphraseHintLabel
+						? t.passphraseHintLabel(activeProf.passphraseHint)
+						: `💡 Hint: ${activeProf.passphraseHint}`;
+					hintEl.setText(labelText);
 					hintEl.toggle(true);
 					return;
 				}
@@ -712,6 +715,8 @@ export class ConfirmEncryptModal extends Modal {
 				const encodingLabel =
 					selectedProfile.filenameEncoding === 'base64'
 						? t.encodingBase64
+						: selectedProfile.filenameEncoding === 'base32768'
+						? (t.encodingBase32768 || 'Base32768 (Compact UTF-16)')
 						: t.encodingBase32;
 
 				const modeDiv = infoDiv.createDiv();

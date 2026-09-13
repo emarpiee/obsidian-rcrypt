@@ -8,6 +8,7 @@ export interface TranslationSchema {
 	profileConfigHeader?: string;
 	profileNamePlaceholder?: string;
 	unnamedProfile?: string;
+	newProfileName?: (count: number) => string;
 	deleteProfileBtn?: string;
 	generalOptionsHeader?: string;
 
@@ -27,6 +28,7 @@ export interface TranslationSchema {
 	passphraseHintName?: string;
 	passphraseHintDesc?: string;
 	passphraseHintPlaceholder?: string;
+	passphraseHintLabel?: (hint: string) => string;
 	defaultSaltName: string;
 	defaultSaltDesc: string;
 	defaultSaltWarning: string;
@@ -143,6 +145,7 @@ const en: TranslationSchema = {
 	profileConfigHeader: 'Profile configuration',
 	profileNamePlaceholder: 'Profile name',
 	unnamedProfile: 'Unnamed Profile',
+	newProfileName: (count: number) => `Profile ${count}`,
 	deleteProfileBtn: 'Delete profile',
 	generalOptionsHeader: 'Additional options',
 
@@ -161,6 +164,7 @@ const en: TranslationSchema = {
 	passphraseHintName: 'Password hint',
 	passphraseHintDesc: 'Optional hint to help remember your passphrase during decryption prompts.',
 	passphraseHintPlaceholder: 'Enter password hint (optional)...',
+	passphraseHintLabel: (hint: string) => `💡 Hint: ${hint}`,
 	defaultSaltName: 'Salt (password2)',
 	defaultSaltDesc: 'Secondary key derivation salt (leave blank to use rclone\'s built-in default salt).',
 	defaultSaltWarning: '⚠️ Important: Salt must match between Obsidian and rclone to decrypt files. Leave blank to use rclone\'s built-in binary default (not the string "rclone").',
@@ -249,6 +253,7 @@ const en: TranslationSchema = {
 		`💡 Note: Files that failed may have already been decrypted or use different credentials.`,
 	noticeAlreadyEncrypted: 'ℹ️ Selected file(s) are already encrypted.',
 	noticeAlreadyDecrypted: 'ℹ️ Selected file(s) are already unencrypted.',
+	noticeNoFilesFound: 'ℹ️ No files found to process.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 Please enter password to re-encrypt ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 Locked ${fileName}`,
 
@@ -278,6 +283,7 @@ const zh: TranslationSchema = {
 	profileConfigHeader: '配置参数',
 	profileNamePlaceholder: '配置名称',
 	unnamedProfile: '未命名配置',
+	newProfileName: (count: number) => `配置 ${count}`,
 	deleteProfileBtn: '删除配置',
 	generalOptionsHeader: '其他选项',
 
@@ -296,6 +302,7 @@ const zh: TranslationSchema = {
 	passphraseHintName: '密码提示',
 	passphraseHintDesc: '可选提示，帮助您在解密提示中想起密码。',
 	passphraseHintPlaceholder: '输入密码提示（可选）...',
+	passphraseHintLabel: (hint: string) => `💡 提示：${hint}`,
 	defaultSaltName: '盐 (password2)',
 	defaultSaltDesc: '与密码一起使用的盐（对应于 rclone.conf 中的 password2）。留空将使用 rclone 内置的二进制默认盐。',
 	defaultSaltWarning: '⚠️ 重要提示：Obsidian 与 rclone 之间的盐必须匹配才能解密文件。留空代表使用 rclone 内置二进制默认值（不是字符串 "rclone"）。',
@@ -377,6 +384,7 @@ const zh: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '加密' : '解密'} 完成但有错误：${success} 成功，${fail} 失败。(${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ 所选文件已加密。',
 	noticeAlreadyDecrypted: 'ℹ️ 所选文件已解密。',
+	noticeNoFilesFound: 'ℹ️ 未找到要处理的文件。',
 	noticeReencryptPrompt: (fileName: string) => `🔑 请输入密码以重新加密 ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 已锁定 ${fileName}`,
 
@@ -403,6 +411,7 @@ const zhTW: TranslationSchema = {
 	profileConfigHeader: '設定檔參數',
 	profileNamePlaceholder: '設定檔名稱',
 	unnamedProfile: '未命名設定檔',
+	newProfileName: (count: number) => `設定檔 ${count}`,
 	deleteProfileBtn: '刪除設定檔',
 	generalOptionsHeader: '其他選項',
 
@@ -421,8 +430,9 @@ const zhTW: TranslationSchema = {
 	passphraseHintName: '密碼提示',
 	passphraseHintDesc: '選填的提示，有助於在解密提示中記住密碼。',
 	passphraseHintPlaceholder: '輸入密碼提示（選填）...',
+	passphraseHintLabel: (hint: string) => `💡 提示：${hint}`,
 	defaultSaltName: '鹽 (password2)',
-	defaultSaltDesc: '與密碼一起使用的鹽（對應於 rclone.conf 中的 password2）。留空將使用 rclone 內建的二進位預設鹽。',
+	defaultSaltDesc: '與密碼一點使用的鹽（對應於 rclone.conf 中的 password2）。留空將使用 rclone 內建的二進位預設鹽。',
 	defaultSaltWarning: '⚠️ 重要提示：Obsidian 與 rclone 之間的鹽必須符合才能解密檔案。留空代表使用 rclone 內建二進位預設值（不是字串 "rclone"）。',
 	defaultSaltPlaceholder: '（留空使用 rclone 預設值）',
 	filenameEncryptionModeName: '檔名加密模式',
@@ -502,6 +512,7 @@ const zhTW: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '加密' : '解密'} 完成但有錯誤：${success} 成功，${fail} 失敗。(${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ 所選檔案已加密。',
 	noticeAlreadyDecrypted: 'ℹ️ 所選檔案已解密。',
+	noticeNoFilesFound: 'ℹ️ 未找到要處理的檔案。',
 	noticeReencryptPrompt: (fileName: string) => `🔑 請輸入密碼以重新加密 ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 已鎖定 ${fileName}`,
 
@@ -528,6 +539,7 @@ const es: TranslationSchema = {
 	profileConfigHeader: 'Configuración del perfil',
 	profileNamePlaceholder: 'Nombre del perfil',
 	unnamedProfile: 'Perfil sin nombre',
+	newProfileName: (count: number) => `Perfil ${count}`,
 	deleteProfileBtn: 'Eliminar perfil',
 	generalOptionsHeader: 'Opciones adicionales',
 
@@ -546,6 +558,7 @@ const es: TranslationSchema = {
 	passphraseHintName: 'Pista de contraseña',
 	passphraseHintDesc: 'Pista opcional para ayudar a recordar la contraseña al descifrar.',
 	passphraseHintPlaceholder: 'Ingrese pista de contraseña (opcional)...',
+	passphraseHintLabel: (hint: string) => `💡 Pista: ${hint}`,
 	defaultSaltName: 'Sal (password2)',
 	defaultSaltDesc: 'Sal utilizada junto con la contraseña (corresponde a password2 en rclone.conf). Dejar en blanco usa la sal binaria predeterminada interna de rclone.',
 	defaultSaltWarning: '⚠️ Importante: La sal debe coincidir entre Obsidian y rclone para descifrar archivos. Dejar en blanco equivale al valor binario predeterminado de rclone.',
@@ -627,6 +640,7 @@ const es: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Cifrado' : 'Descifrado'} finalizado con errores: ${success} con éxito, ${fail} fallidos. (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ Los archivos seleccionados ya están cifrados.',
 	noticeAlreadyDecrypted: 'ℹ️ Los archivos seleccionados ya están descifrados.',
+	noticeNoFilesFound: 'ℹ️ No se encontraron archivos para procesar.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 Por favor ingrese la contraseña para volver a cifrar ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 Bloqueado ${fileName}`,
 
@@ -653,6 +667,7 @@ const fr: TranslationSchema = {
 	profileConfigHeader: 'Configuration du profil',
 	profileNamePlaceholder: 'Nom du profil',
 	unnamedProfile: 'Profil sans nom',
+	newProfileName: (count: number) => `Profil ${count}`,
 	deleteProfileBtn: 'Supprimer le profil',
 	generalOptionsHeader: 'Options supplémentaires',
 
@@ -671,6 +686,7 @@ const fr: TranslationSchema = {
 	passphraseHintName: 'Indice de mot de passe',
 	passphraseHintDesc: 'Indice facultatif pour vous aider à vous souvenir de votre mot de passe lors du déchiffrement.',
 	passphraseHintPlaceholder: 'Saisir un indice (facultatif)...',
+	passphraseHintLabel: (hint: string) => `💡 Indice : ${hint}`,
 	defaultSaltName: 'Sel (password2)',
 	defaultSaltDesc: 'Sel utilisé avec le mot de passe (correspond à password2 dans rclone.conf). Laisser vide pour utiliser le sel binaire interne par défaut de rclone.',
 	defaultSaltWarning: '⚠️ Important : Le sel doit correspondre entre Obsidian et rclone. Laisser vide correspond à la valeur binaire par défaut de rclone.',
@@ -752,6 +768,7 @@ const fr: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Chiffrement' : 'Déchiffrement'} terminé avec des erreurs : ${success} réussi(s), ${fail} échoué(s). (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ Les fichiers sélectionnés sont déjà chiffrés.',
 	noticeAlreadyDecrypted: 'ℹ️ Les fichiers sélectionnés sont déjà déchiffrés.',
+	noticeNoFilesFound: 'ℹ️ Aucun fichier trouvé à traiter.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 Veuillez entrer le mot de passe pour rechiffrer ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 Verrouillé ${fileName}`,
 
@@ -778,6 +795,7 @@ const de: TranslationSchema = {
 	profileConfigHeader: 'Profilkonfiguration',
 	profileNamePlaceholder: 'Profilname',
 	unnamedProfile: 'Unbenanntes Profil',
+	newProfileName: (count: number) => `Profil ${count}`,
 	deleteProfileBtn: 'Profil löschen',
 	generalOptionsHeader: 'Zusätzliche Optionen',
 
@@ -796,6 +814,7 @@ const de: TranslationSchema = {
 	passphraseHintName: 'Passworthinweis',
 	passphraseHintDesc: 'Optionaler Hinweis zur Erinnerung an Ihr Passwort bei der Entschlüsselung.',
 	passphraseHintPlaceholder: 'Passworthinweis eingeben (optional)...',
+	passphraseHintLabel: (hint: string) => `💡 Hinweis: ${hint}`,
 	defaultSaltName: 'Salt (password2)',
 	defaultSaltDesc: 'Salt zusammen mit der Passphrase (entspricht password2 in rclone.conf). Leer lassen, um den internen binären Standard-Salt von rclone zu verwenden.',
 	defaultSaltWarning: '⚠️ Wichtig: Das Salt muss zwischen Obsidian und rclone übereinstimmen. Leer lassen entspricht dem rclone-Standard.',
@@ -877,6 +896,7 @@ const de: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Verschlüsselung' : 'Entschlüsselung'} mit Fehlern beendet: ${success} erfolgreich, ${fail} fehlgeschlagen. (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ Ausgewählte Dateien sind bereits verschlüsselt.',
 	noticeAlreadyDecrypted: 'ℹ️ Ausgewählte Dateien sind bereits entschlüsselt.',
+	noticeNoFilesFound: 'ℹ️ Keine zu verarbeitenden Dateien gefunden.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 Bitte Passwort eingeben, um ${fileName} erneut zu verschlüsseln`,
 	noticeFileLocked: (fileName: string) => `🔒 ${fileName} gesperrt`,
 
@@ -903,6 +923,7 @@ const ja: TranslationSchema = {
 	profileConfigHeader: 'プロファイル設定',
 	profileNamePlaceholder: 'プロファイル名',
 	unnamedProfile: '無題のプロファイル',
+	newProfileName: (count: number) => `プロファイル ${count}`,
 	deleteProfileBtn: 'プロファイルを削除',
 	generalOptionsHeader: '追加オプション',
 
@@ -921,6 +942,7 @@ const ja: TranslationSchema = {
 	passphraseHintName: 'パスワードのヒント',
 	passphraseHintDesc: '復号時にパスワードを思い出すためのオプションのヒント。',
 	passphraseHintPlaceholder: 'パスワードのヒントを入力（任意）...',
+	passphraseHintLabel: (hint: string) => `💡 ヒント: ${hint}`,
 	defaultSaltName: 'ソルト (password2)',
 	defaultSaltDesc: 'パスフレーズと共に使用されるソルト (rclone.conf の password2 に相当)。空白にすると rclone の内部バイナリデフォルトソルトを使用します。',
 	defaultSaltWarning: '⚠️ 重要: ファイルを復号するにはObsidianとrclone間でソルトが一致する必要があります。',
@@ -1002,6 +1024,7 @@ const ja: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '暗号化' : '復号'} がエラー付きで完了しました: ${success}件成功、${fail}件失敗。(${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ 選択したファイルは既に暗号化されています。',
 	noticeAlreadyDecrypted: 'ℹ️ 選択したファイルは既に復号されています。',
+	noticeNoFilesFound: 'ℹ️ 処理対象のファイルが見つかりません。',
 	noticeReencryptPrompt: (fileName: string) => `🔑 ${fileName} を再暗号化するにはパスワードを入力してください`,
 	noticeFileLocked: (fileName: string) => `🔒 ${fileName} をロックしました`,
 
@@ -1028,6 +1051,7 @@ const ko: TranslationSchema = {
 	profileConfigHeader: '프로필 구성',
 	profileNamePlaceholder: '프로필 이름',
 	unnamedProfile: '이름 없는 프로필',
+	newProfileName: (count: number) => `프로필 ${count}`,
 	deleteProfileBtn: '프로필 삭제',
 	generalOptionsHeader: '추가 옵션',
 
@@ -1046,6 +1070,7 @@ const ko: TranslationSchema = {
 	passphraseHintName: '비밀번호 힌트',
 	passphraseHintDesc: '복호화 시 비밀번호를 기억하는 데 도움이 되는 선택적 힌트입니다.',
 	passphraseHintPlaceholder: '비밀번호 힌트 입력 (선택 사항)...',
+	passphraseHintLabel: (hint: string) => `💡 힌트: ${hint}`,
 	defaultSaltName: '솔트 (password2)',
 	defaultSaltDesc: '암호문과 함께 사용되는 솔트입니다 (rclone.conf의 password2에 해당). 비워두면 rclone의 내부 이진 기본 솔트를 사용합니다.',
 	defaultSaltWarning: '⚠️ 중요: 파일을 복호화하려면 Obsidian과 rclone 간의 솔트가 일치해야 합니다.',
@@ -1127,6 +1152,7 @@ const ko: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? '암호화' : '복호화'}가 오류와 함께 완료됨: ${success}개 성공, ${fail}개 실패. (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ 선택한 파일은 이미 암호화되어 있습니다.',
 	noticeAlreadyDecrypted: 'ℹ️ 선택한 파일은 이미 복호화되어 있습니다.',
+	noticeNoFilesFound: 'ℹ️ 처리할 파일을 찾을 수 없습니다.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 ${fileName}을(를) 다시 암호화하려면 비밀번호를 입력하세요`,
 	noticeFileLocked: (fileName: string) => `🔒 ${fileName} 잠김`,
 
@@ -1153,6 +1179,7 @@ const ru: TranslationSchema = {
 	profileConfigHeader: 'Конфигурация профиля',
 	profileNamePlaceholder: 'Имя профиля',
 	unnamedProfile: 'Безымянный профиль',
+	newProfileName: (count: number) => `Профиль ${count}`,
 	deleteProfileBtn: 'Удалить профиль',
 	generalOptionsHeader: 'Дополнительные опции',
 
@@ -1171,6 +1198,7 @@ const ru: TranslationSchema = {
 	passphraseHintName: 'Подсказка пароля',
 	passphraseHintDesc: 'Необязательная подсказка, помогающая вспомнить пароль при расшифровке.',
 	passphraseHintPlaceholder: 'Введите подсказку (необязательно)...',
+	passphraseHintLabel: (hint: string) => `💡 Подсказка: ${hint}`,
 	defaultSaltName: 'Соль (password2)',
 	defaultSaltDesc: 'Соль, используемая вместе с паролем (соответствует password2 в rclone.conf). Оставьте пустым, чтобы использовать встроенную бинарную соль rclone по умолчанию.',
 	defaultSaltWarning: '⚠️ Важно: Соль должна совпадать между Obsidian и rclone.',
@@ -1252,6 +1280,7 @@ const ru: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'Шифрование' : 'Расшифровка'} завершена с ошибками: ${success} успешно, ${fail} не удалось. (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ Выбранные файлы уже зашифрованы.',
 	noticeAlreadyDecrypted: 'ℹ️ Выбранные файлы уже расшифрованы.',
+	noticeNoFilesFound: 'ℹ️ Файлы для обработки не найдены.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 Введите пароль для повторного шифрования ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 Заблокировано ${fileName}`,
 
@@ -1278,6 +1307,7 @@ const ar: TranslationSchema = {
 	profileConfigHeader: 'تكوين الملف الشخصي',
 	profileNamePlaceholder: 'اسم الملف الشخصي',
 	unnamedProfile: 'ملف شخصي غير مسمى',
+	newProfileName: (count: number) => `ملف شخصي ${count}`,
 	deleteProfileBtn: 'حذف الملف الشخصي',
 	generalOptionsHeader: 'خيارات إضافية',
 
@@ -1286,7 +1316,7 @@ const ar: TranslationSchema = {
 	autoEncryptOnCloseName: 'القفل عند إغلاق علامة التبويب',
 	autoEncryptOnCloseDesc: 'يقفل الملاحظات تلقائيًا ويزيل الملفات العادية عند إغلاق علامة التبويب الخاص بها.',
 	lockVaultName: 'مسح كلمة مرور الجلسة والملح من الذاكرة',
-	lockVaultNotice: '🧹 تم مسح كلمة مرور الجلسة والملح من الذاكرة.',
+	lockVaultNotice: '<ctrl42> تم مسح كلمة مرور الجلسة والملح من الذاكرة.',
 
 	settingsHeading: 'تشفير الخزنة',
 	settingsHeadingDesc: 'تشفير 1:1 من جانب العميل متوافق مع RCLONE Crypt. يمكن فك تشفير الملفات والمجلدات المشفرة هنا مباشرة بواسطة RCLONE CLI والعكس صحيح.',
@@ -1296,6 +1326,7 @@ const ar: TranslationSchema = {
 	passphraseHintName: 'تلميح كلمة المرور',
 	passphraseHintDesc: 'تلميح اختياري للمساعدة في تذكر كلمة المرور أثناء مطالب التفكيك.',
 	passphraseHintPlaceholder: 'أدخل تلميح كلمة المرور (اختياري)...',
+	passphraseHintLabel: (hint: string) => `💡 تلميح: ${hint}`,
 	defaultSaltName: 'الملح (password2)',
 	defaultSaltDesc: 'الملح المستخدم جنبًا إلى جنب مع عبارة المرور (يطابق password2 في rclone.conf). اتركه فارغًا لاستخدام الملح الثنائي الافتراضي الداخلي لـ rclone.',
 	defaultSaltWarning: '⚠️ هام: يجب أن يتطابق الملح بين Obsidian و rclone لفك تشفير الملفات.',
@@ -1377,6 +1408,7 @@ const ar: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ اكتمل ${action === 'encrypt' ? 'التشفير' : 'فك التشفير'} مع وجود أخطاء: نجح ${success}، وفشل ${fail}. (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ الملفات المحددة مشفرة بالفعل.',
 	noticeAlreadyDecrypted: 'ℹ️ الملفات المحددة غير مشفرة بالفعل.',
+	noticeNoFilesFound: 'ℹ️ لم يتم العثور على ملفات للمعالجة.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 يرجى إدخال كلمة المرور لإعادة تشفير ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 تم قفل ${fileName}`,
 
@@ -1403,6 +1435,7 @@ const he: TranslationSchema = {
 	profileConfigHeader: 'תצורת פרופיל',
 	profileNamePlaceholder: 'שם פרופיל',
 	unnamedProfile: 'פרופיל ללא שם',
+	newProfileName: (count: number) => `פרופיל ${count}`,
 	deleteProfileBtn: 'מחק פרופיל',
 	generalOptionsHeader: 'אפשרויות נוספות',
 
@@ -1421,6 +1454,7 @@ const he: TranslationSchema = {
 	passphraseHintName: 'רמז לסיסמה',
 	passphraseHintDesc: 'רמז אופציונלי לעזרה בזכירת הסיסמה במהלך פענוח.',
 	passphraseHintPlaceholder: 'הזן רמז לסיסמה (אופציונלי)...',
+	passphraseHintLabel: (hint: string) => `💡 רמז: ${hint}`,
 	defaultSaltName: 'Salt (password2)',
 	defaultSaltDesc: 'Salt המשמש לצד הסיסמה (תואם ל-password2 ב-rclone.conf). השאר ריק לשימוש ב-Salt הבינארי הפנימי של rclone.',
 	defaultSaltWarning: '⚠️ חשוב: ה-Salt חייב להיות תואם בין Obsidian ל-rclone כדי לפענח קבצים.',
@@ -1502,6 +1536,7 @@ const he: TranslationSchema = {
 	noticeActionFinishedWithErrors: (action: string, success: number, fail: number, err: string) => `⚠️ ${action === 'encrypt' ? 'ההצפנה' : 'הפענוח'} הושלמו עם שגיאות: ${success} הצליחו, ${fail} נכשלו. (${err})`,
 	noticeAlreadyEncrypted: 'ℹ️ הקבצים שנבחרו כבר מוצפנים.',
 	noticeAlreadyDecrypted: 'ℹ️ הקבצים שנבחרו כבר פוענחו.',
+	noticeNoFilesFound: 'ℹ️ לא נמצאו קבצים לעיבוד.',
 	noticeReencryptPrompt: (fileName: string) => `🔑 נא להזין סיסמה כדי להצפין מחדש את ${fileName}`,
 	noticeFileLocked: (fileName: string) => `🔒 ${fileName} ננעל`,
 
@@ -1515,13 +1550,13 @@ const he: TranslationSchema = {
 	confirmEncryptDesc: (count: number, profileName: string) => `האם אתה בטוח שברצונך להצפין ${count} פריטים באמצעות פרופיל "${profileName}"?`,
 	confirmEncryptCustomDesc: (count: number) => `האם אתה בטוח שברצונך להצפין ${count} פריטים באמצעות הגדרה מותאמת אישית?`,
 	confirmEncryptFilenameModeLabel: 'מצב שמות קבצים: ',
-	confirmEncryptFilenameEncodingLabel: 'קידود שמות קבצים: ',
+	confirmEncryptFilenameEncodingLabel: 'קידוד שמות קבצים: ',
 	confirmEncryptWarning: 'חשוב: ודא שהסיסמה וה-Salt שלך שמורים בבטחה.',
 	confirmEncryptBtn: 'הצפן',
 	cancelBtn: 'ביטול',
 };
 
-const localeMap: Record<string, TranslationSchema> = {
+export const localeMap: Record<string, TranslationSchema> = {
 	en,
 	'zh-cn': zh,
 	zh,

@@ -48,7 +48,9 @@ export class RCryptSettingTab extends PluginSettingTab {
 						const newProfile: CryptProfile = {
 							...DEFAULT_PROFILE,
 							id: newId,
-							name: `Profile ${this.plugin.settings.profiles.length + 1}`,
+							name: t.newProfileName
+								? t.newProfileName(this.plugin.settings.profiles.length + 1)
+								: `Profile ${this.plugin.settings.profiles.length + 1}`,
 						};
 						this.plugin.settings.profiles.push(newProfile);
 						this.plugin.settings.activeProfileId = newId;
