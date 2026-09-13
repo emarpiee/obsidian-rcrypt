@@ -4,6 +4,9 @@ export default defineConfig({
 	test: {
 		environment: 'jsdom',
 		globals: true,
+		alias: {
+			obsidian: './tests/mocks/obsidian.ts',
+		},
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html'],

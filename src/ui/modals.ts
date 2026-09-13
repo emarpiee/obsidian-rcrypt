@@ -97,7 +97,7 @@ export class PassphraseModal extends Modal {
 				for (const p of this.profiles) {
 					dropdown.addOption(p.id, p.name);
 				}
-				dropdown.addOption('custom', 'Custom...');
+				dropdown.addOption('custom', t.customProfileOption || 'Custom...');
 				dropdown.setValue(this.selectedProfileId);
 				dropdown.onChange((val) => {
 					this.selectedProfileId = val;
@@ -151,7 +151,7 @@ export class PassphraseModal extends Modal {
 				});
 
 			passSetting.addButton((btn) => {
-				btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
+				btn.setIcon('eye').setTooltip(t.showHidePassphraseTooltip || 'Show/hide passphrase').onClick(() => {
 					if (passInputEl) {
 						if (passInputEl.type === 'password') {
 							passInputEl.type = 'text';
@@ -180,7 +180,7 @@ export class PassphraseModal extends Modal {
 				});
 
 			saltSetting.addButton((btn) => {
-				btn.setIcon('eye').setTooltip('Show/hide salt').onClick(() => {
+				btn.setIcon('eye').setTooltip(t.showHideSaltTooltip || 'Show/hide salt').onClick(() => {
 					if (saltInputEl) {
 						if (saltInputEl.type === 'password') {
 							saltInputEl.type = 'text';
@@ -302,7 +302,7 @@ export class PassphraseModal extends Modal {
 					errorDiv.setCssProps({ display: 'block' });
 				}
 			} catch (err: unknown) {
-				const msg = err instanceof Error ? err.message : 'Invalid passphrase or file error.';
+				const msg = err instanceof Error ? err.message : (t.modalErrInvalidPassphrase || 'Invalid passphrase or file error.');
 				errorDiv.setText(`❌ ${msg}`);
 				errorDiv.setCssProps({ display: 'block' });
 			}
@@ -389,10 +389,11 @@ export class MappedFolderSuggestModal extends FuzzySuggestModal<MappedFolderItem
 		super(app);
 		this.plugin = plugin;
 		this.action = action;
+		const t = getText();
 		this.setPlaceholder(
 			action === 'encrypt'
-				? 'Search mapped folder to encrypt...'
-				: 'Search mapped folder to decrypt...'
+				? (t.searchMappedFolderEncryptPlaceholder || 'Search mapped folder to encrypt...')
+				: (t.searchMappedFolderDecryptPlaceholder || 'Search mapped folder to decrypt...')
 		);
 	}
 
@@ -449,15 +450,20 @@ export class MappedFolderSuggestModal extends FuzzySuggestModal<MappedFolderItem
 	}
 
 	getItemText(item: MappedFolderItem): string {
-		const status = item.folderObj ? '' : ' (Encrypted on disk)';
+		const t = getText();
+		const status = item.folderObj ? '' : (t.encryptedOnDiskStatus || ' (Encrypted on disk)');
 		return `${item.folderPath} (${item.profileName})${status}`;
 	}
 
 	onChooseItem(item: MappedFolderItem, _evt: MouseEvent | KeyboardEvent): void {
+		const t = getText();
 		if (item.folderObj) {
 			void processItems(this.plugin, [item.folderObj], this.action, this.action === 'decrypt', item.profileId);
 		} else {
-			this.plugin.showNotice(`⚠️ Mapped folder "${item.folderPath}" not found in vault.`);
+			const msg = t.noticeMappedFolderNotFound
+				? t.noticeMappedFolderNotFound(item.folderPath)
+				: `⚠️ Mapped folder "${item.folderPath}" not found in vault.`;
+			this.plugin.showNotice(msg);
 		}
 	}
 }
@@ -574,7 +580,9 @@ export class ConfirmEncryptModal extends Modal {
 
 			if (this.selectedProfileId === 'custom') {
 				descEl.setText(
-					`Are you sure you want to encrypt ${totalFiles} item(s) using Custom Configuration?`
+					t.confirmEncryptCustomDesc
+						? t.confirmEncryptCustomDesc(totalFiles)
+						: `Are you sure you want to encrypt ${totalFiles} item(s) using Custom Configuration?`
 				);
 
 				let passInputEl: HTMLInputElement | undefined;
@@ -595,7 +603,7 @@ export class ConfirmEncryptModal extends Modal {
 					});
 
 				passSetting.addButton((btn) => {
-					btn.setIcon('eye').setTooltip('Show/hide passphrase').onClick(() => {
+					btn.setIcon('eye').setTooltip(t.showHidePassphraseTooltip || 'Show/hide passphrase').onClick(() => {
 						if (passInputEl) {
 							if (passInputEl.type === 'password') {
 								passInputEl.type = 'text';
@@ -623,7 +631,7 @@ export class ConfirmEncryptModal extends Modal {
 					});
 
 				saltSetting.addButton((btn) => {
-					btn.setIcon('eye').setTooltip('Show/hide salt').onClick(() => {
+					btn.setIcon('eye').setTooltip(t.showHideSaltTooltip || 'Show/hide salt').onClick(() => {
 						if (saltInputEl) {
 							if (saltInputEl.type === 'password') {
 								saltInputEl.type = 'text';
@@ -707,12 +715,12 @@ export class ConfirmEncryptModal extends Modal {
 						: t.encodingBase32;
 
 				const modeDiv = infoDiv.createDiv();
-				modeDiv.createSpan({ text: 'Filename mode: ' });
+				modeDiv.createSpan({ text: t.confirmEncryptFilenameModeLabel || 'Filename mode: ' });
 				modeDiv.createEl('strong', { text: modeLabel });
 
 				const encodingDiv = infoDiv.createDiv();
 				encodingDiv.setCssProps({ marginTop: '4px' });
-				encodingDiv.createSpan({ text: 'Filename encoding: ' });
+				encodingDiv.createSpan({ text: t.confirmEncryptFilenameEncodingLabel || 'Filename encoding: ' });
 				encodingDiv.createEl('strong', { text: encodingLabel });
 			}
 		};
@@ -724,7 +732,7 @@ export class ConfirmEncryptModal extends Modal {
 				for (const p of this.profiles) {
 					dropdown.addOption(p.id, p.name);
 				}
-				dropdown.addOption('custom', 'Custom...');
+				dropdown.addOption('custom', t.customProfileOption || 'Custom...');
 				dropdown.setValue(this.selectedProfileId);
 				dropdown.onChange((val) => {
 					this.selectedProfileId = val;
@@ -780,7 +788,7 @@ export class ConfirmEncryptModal extends Modal {
 						}
 						const customProfile: CryptProfile = {
 							id: 'custom',
-							name: 'Custom Configuration',
+							name: t.customProfileName || 'Custom Configuration',
 							passphrase: this.customPassphrase,
 							salt: this.customSalt,
 							filenameEncryptionMode: this.customMode,
@@ -856,14 +864,17 @@ export class ProgressModal extends Modal {
 
 	onOpen(): void {
 		const { contentEl } = this;
+		const t = getText();
 		const icon = this.action === 'encrypt' ? '🔒' : '🔓';
-		const actionTitle = this.action === 'encrypt' ? 'Encrypting' : 'Decrypting';
-		this.setTitle(`${icon} ${actionTitle} ${this.total} item(s)...`);
+		const actionTitle = this.action === 'encrypt' ? (t.progressEncrypting || 'Encrypting') : (t.progressDecrypting || 'Decrypting');
+		const modalTitle = t.progressTitle ? t.progressTitle(icon, actionTitle, this.total) : `${icon} ${actionTitle} ${this.total} item(s)...`;
+		this.setTitle(modalTitle);
 
 		contentEl.empty();
 
 		this.statusEl = contentEl.createDiv({ cls: 'rcrypt-progress-status' });
-		this.statusEl.setText(`Processing 0 of ${this.total} (0%)...`);
+		const statusText = t.progressStatus ? t.progressStatus(0, this.total, 0) : `Processing 0 of ${this.total} (0%)...`;
+		this.statusEl.setText(statusText);
 		this.statusEl.setCssProps({ marginBottom: '8px', fontWeight: 'bold' });
 
 		this.fileEl = contentEl.createDiv({ cls: 'rcrypt-progress-file' });
@@ -885,25 +896,28 @@ export class ProgressModal extends Modal {
 
 		const cancelBtnSetting = new Setting(contentEl);
 		cancelBtnSetting.addButton((btn) => {
-			btn.setButtonText('Cancel').setWarning().onClick(() => {
+			btn.setButtonText(t.cancelBtn || 'Cancel').setWarning().onClick(() => {
 				this.isCancelled = true;
 				btn.setDisabled(true);
-				btn.setButtonText('Cancelling...');
-				this.statusEl.setText('⚠️ cancelling operation...');
+				btn.setButtonText(t.progressCancelling || 'Cancelling...');
+				this.statusEl.setText(t.progressCancellingStatus || '⚠️ cancelling operation...');
 			});
 		});
 	}
 
 	public updateProgress(current: number, filename: string): void {
+		const t = getText();
 		this.current = current;
 		this.currentFile = filename;
 		const pct = Math.round((current / this.total) * 100);
 
 		if (this.statusEl) {
-			this.statusEl.setText(`Processing ${current} of ${this.total} (${pct}%)...`);
+			const statusText = t.progressStatus ? t.progressStatus(current, this.total, pct) : `Processing ${current} of ${this.total} (${pct}%)...`;
+			this.statusEl.setText(statusText);
 		}
 		if (this.fileEl) {
-			this.fileEl.setText(`Current: ${filename}`);
+			const fileText = t.progressCurrentFile ? t.progressCurrentFile(filename) : `Current: ${filename}`;
+			this.fileEl.setText(fileText);
 		}
 		if (this.progressEl) {
 			this.progressEl.value = current;
@@ -919,5 +933,3 @@ export class ProgressModal extends Modal {
 		contentEl.empty();
 	}
 }
-
-

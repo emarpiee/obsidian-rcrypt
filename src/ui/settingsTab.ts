@@ -25,8 +25,8 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		// --- PROFILE MANAGER SECTION ---
 		new Setting(containerEl)
-			.setName(t.profileManagerName)
-			.setDesc(t.profileManagerDesc)
+			.setName(t.profileManagerName || 'Active profile')
+			.setDesc(t.profileManagerDesc || 'Select default crypt profile.')
 			.addDropdown((dropdown) => {
 				for (const profile of this.plugin.settings.profiles) {
 					dropdown.addOption(profile.id, profile.name);
@@ -41,7 +41,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 			})
 			.addButton((btn) => {
 				btn
-					.setButtonText(t.newProfileBtn)
+					.setButtonText(t.newProfileBtn || '+ new profile')
 					.setCta()
 					.onClick(async () => {
 						const newId = `profile_${Date.now()}`;
@@ -66,15 +66,15 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		// Profile Name & Actions (Rename / Delete)
 		const profileHeaderSetting = new Setting(containerEl)
-			.setName(t.profileConfigHeader)
+			.setName(t.profileConfigHeader || 'Profile configuration')
 			.setHeading();
 
 		profileHeaderSetting.addText((text) => {
 			text
-				.setPlaceholder('Profile name')
+				.setPlaceholder(t.profileNamePlaceholder || 'Profile name')
 				.setValue(activeProfile.name)
 				.onChange(async (val) => {
-					activeProfile.name = val || 'Unnamed Profile';
+					activeProfile.name = val || (t.unnamedProfile || 'Unnamed Profile');
 					await this.plugin.saveSettings();
 				});
 		});
@@ -82,7 +82,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 		if (this.plugin.settings.profiles.length > 1) {
 			profileHeaderSetting.addButton((btn) => {
 				btn
-					.setButtonText(t.deleteProfileBtn)
+					.setButtonText(t.deleteProfileBtn || 'Delete profile')
 					.setWarning()
 					.onClick(async () => {
 						this.plugin.settings.profiles = this.plugin.settings.profiles.filter(
@@ -112,11 +112,11 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		// Password hint
 		new Setting(containerEl)
-			.setName('Password hint')
-			.setDesc('Optional hint to help remember your passphrase during decryption prompts.')
+			.setName(t.passphraseHintName || 'Password hint')
+			.setDesc(t.passphraseHintDesc || 'Optional hint to help remember your passphrase during decryption prompts.')
 			.addText((text) => {
 				text
-					.setPlaceholder('Enter password hint (optional)...')
+					.setPlaceholder(t.passphraseHintPlaceholder || 'Enter password hint (optional)...')
 					.setValue(activeProfile.passphraseHint || '')
 					.onChange(async (value) => {
 						activeProfile.passphraseHint = value;
@@ -223,7 +223,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 			});
 
 		// --- OTHER OPTIONS SECTION ---
-		new Setting(containerEl).setName(t.generalOptionsHeader);
+		new Setting(containerEl).setName(t.generalOptionsHeader || 'Additional options');
 
 		new Setting(containerEl)
 			.setName(t.autoDeleteSourceName)
@@ -237,10 +237,10 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 		// --- FOLDER PROFILE MAPPINGS SECTION ---
 		new Setting(containerEl)
-			.setName('Folder profile mappings')
-			.setDesc('Assign specific crypt profiles to designated folder paths (e.g. "private/journal"). Files inside will automatically use the mapped profile.')
+			.setName(t.folderMappingsName || 'Folder profile mappings')
+			.setDesc(t.folderMappingsDesc || 'Assign specific crypt profiles to designated folder paths (e.g. "private/journal"). Files inside will automatically use the mapped profile.')
 			.addButton((btn) => {
-				btn.setButtonText('+ add folder mapping').onClick(async () => {
+				btn.setButtonText(t.addFolderMappingBtn || '+ add folder mapping').onClick(async () => {
 					this.plugin.settings.folderMappings.push({
 						folderPath: '',
 						profileId: activeProfile.id,
@@ -255,7 +255,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 
 			setting.addText((text) => {
 				text
-					.setPlaceholder('Folder path (e.g. Private/journal)')
+					.setPlaceholder(t.folderMappingPathPlaceholder || 'Folder path (e.g. Private/journal)')
 					.setValue(mapping.folderPath)
 					.onChange(async (val) => {
 						mapping.folderPath = val.trim();
@@ -277,7 +277,7 @@ export class RCryptSettingTab extends PluginSettingTab {
 			setting.addButton((btn) => {
 				btn
 					.setIcon('trash')
-					.setTooltip('Delete mapping')
+					.setTooltip(t.deleteMappingTooltip || 'Delete mapping')
 					.onClick(async () => {
 						this.plugin.settings.folderMappings.splice(index, 1);
 						await this.plugin.saveSettings();

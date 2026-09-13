@@ -51,8 +51,12 @@ export default class RCryptPlugin extends Plugin {
 					if (prof.autoEncryptOnClose) {
 						this.sessionDecryptedMap.delete(decryptedPath);
 						void (async (): Promise<void> => {
+							const t = getText();
 							if (!prof.passphrase) {
-								this.showNotice(`🔑 Please enter password to re-encrypt ${file.name}`, 10000);
+								const msg = t.noticeReencryptPrompt
+									? t.noticeReencryptPrompt(file.name)
+									: `🔑 Please enter password to re-encrypt ${file.name}`;
+								this.showNotice(msg, 10000);
 								await processItems(this, [file], 'encrypt', true, prof.id);
 							} else {
 								const res = await executeBatchAction(
@@ -64,7 +68,10 @@ export default class RCryptPlugin extends Plugin {
 									prof
 								);
 								if (res.successCount > 0) {
-									this.showNotice(`🔒 Locked ${file.name}`, 8000);
+									const msg = t.noticeFileLocked
+										? t.noticeFileLocked(file.name)
+										: `🔒 Locked ${file.name}`;
+									this.showNotice(msg, 8000);
 								}
 							}
 						})();
@@ -179,7 +186,7 @@ export default class RCryptPlugin extends Plugin {
 		// Register "Encrypt mapped folder..." command
 		this.addCommand({
 			id: 'encrypt-mapped-folder-suggest',
-			name: 'Encrypt mapped folder...',
+			name: getText().encryptMappedFolderCommandName || 'Encrypt mapped folder...',
 			callback: () => {
 				new MappedFolderSuggestModal(this.app, this, 'encrypt').open();
 			},
@@ -188,7 +195,7 @@ export default class RCryptPlugin extends Plugin {
 		// Register "Decrypt mapped folder..." command
 		this.addCommand({
 			id: 'decrypt-mapped-folder-suggest',
-			name: 'Decrypt mapped folder...',
+			name: getText().decryptMappedFolderCommandName || 'Decrypt mapped folder...',
 			callback: () => {
 				new MappedFolderSuggestModal(this.app, this, 'decrypt').open();
 			},
