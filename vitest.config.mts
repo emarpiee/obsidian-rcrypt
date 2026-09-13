@@ -5,7 +5,7 @@ export default defineConfig({
 		environment: 'jsdom',
 		globals: true,
 		alias: {
-			obsidian: './tests/mocks/obsidian.ts',
+			obsidian: new URL('./tests/mocks/obsidian.ts', import.meta.url).pathname,
 		},
 		coverage: {
 			provider: 'v8',
